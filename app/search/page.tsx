@@ -96,10 +96,11 @@ export default function SearchPage() {
                   </p>
                   <div className="space-y-3">
                     {results.map((result, idx) => {
-                      let category = "result";
-                      if (result.category === "Service") category = "Service";
-                      else if (result.category === "Page") category = "Page";
-                      else category = "Location";
+                      let category = "Location";
+                      if ("category" in result) {
+                        if (result.category === "Service") category = "Service";
+                        else if (result.category === "Page") category = "Page";
+                      }
 
                       return (
                         <Link
