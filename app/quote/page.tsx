@@ -1,6 +1,180 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 
+interface QuoteFormData {
+  service: string;
+  bedrooms: number;
+  bathrooms: number;
+  frequency: string;
+  addOns: string[];
+  timing: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  address: string;
+  notes: string;
+}
+
+const serviceOptions = [
+  { id: "residential-cleaning", name: "Residential Cleaning", basePrice: 169 },
+  { id: "deep-cleaning", name: "Deep Cleaning", basePrice: 199 },
+  { id: "commercial-cleaning", name: "Commercial Cleaning", basePrice: 120 },
+  { id: "post-construction", name: "Post-Construction Cleanup", basePrice: 250 },
+  { id: "junk-removal", name: "Junk Removal", basePrice: 149 },
+  { id: "power-washing", name: "Power Washing", basePrice: 99 },
+  { id: "moving", name: "Moving Services", basePrice: 299 },
+  { id: "demolition", name: "Demolition Services", basePrice: 500 },
+];
+
+const addOnOptions = [
+  { id: "interior-oven", name: "Interior Oven Cleaning", price: 100 },
+  { id: "window-cleaning", name: "Window Cleaning", price: 80 },
+  { id: "carpet-cleaning", name: "Carpet Cleaning", price: 150 },
+  { id: "upholstery", name: "Upholstery Cleaning", price: 120 },
+  { id: "grout-cleaning", name: "Grout Cleaning", price: 90 },
+];
+
 export default function QuotePage() {
+  const [step, setStep] = useState(1);
+  const [formData, setFormData] = useState<QuoteFormData>({
+    service: "",
+    bedrooms: 2,
+    bathrooms: 1,
+    frequency: "one-time",
+    addOns: [],
+    timing: "flexible",
+    firstName: "",
+    lastName: "",
+    phone: "",
+    email: "",
+    address: "",
+    notes: "",
+  });
+
+  const [submitted, setSubmitted] = useState(false);
+
+  const calculatePrice = () => {
+    if (!formData.service) return 0;
+
+    const service = serviceOptions.find((s) => s.id === formData.service);
+    if (!service) return 0;
+
+    let price = service.basePrice;
+
+    // Add-ons
+    const addOnPrices = formData.addOns.reduce((total, addOnId) => {
+      const addOn = addOnOptions.find((a) => a.id === addOnId);
+      return total + (addOn?.price || 0);
+    }, 0);
+
+    // For cleaning services, adjust by property size (bedrooms/bathrooms proxy)
+    if (
+      ["residential-cleaning", "deep-cleaning", "post-construction"].includes(
+        formData.service
+      )
+    ) {
+      const roomFactor = (formData.bedrooms + formData.bathrooms) * 10;
+      price += roomFactor;
+    }
+
+    // Frequency multiplier
+    if (formData.frequency === "recurring") {
+      price *= 0.8; // 20% discount for recurring
+    }
+
+    return Math.round(price + addOnPrices);
+  };
+
+  const totalPrice = calculatePrice();
+  const totalSteps = 5;
+
+  const handleNext = () => {
+    if (step < totalSteps) setStep(step + 1);
+  };
+
+  const handleBack = () => {
+    if (step > 1) setStep(step - 1);
+  };
+
+  const handleAddOnToggle = (addOnId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      addOns: prev.addOns.includes(addOnId)
+        ? prev.addOns.filter((id) => id !== addOnId)
+        : [...prev.addOns, addOnId],
+    }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitted(true);
+    // Here you would send the data to your backend/CRM
+    console.log("Quote submitted:", formData);
+  };
+
+  if (submitted) {
+    return (
+      <div>
+        <section className="bg-primary-600 text-white py-16">
+          <div className="section-container">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">Quote Submitted!</h1>
+            <p className="text-lg text-white">
+              Thank you for using our quote tool. We'll call you shortly to confirm details.
+            </p>
+          </div>
+        </section>
+
+        <section className="section">
+          <div className="section-container max-w-2xl">
+            <div className="bg-primary-50 border-2 border-accent-500 rounded-xl p-8">
+              <h2 className="text-3xl font-bold text-primary-900 mb-6">Your Quote Summary</h2>
+
+              <div className="space-y-4 mb-8">
+                <div className="flex justify-between">
+                  <span className="font-semibold text-primary-900">Service:</span>
+                  <span className="text-primary-900">
+                    {serviceOptions.find((s) => s.id === formData.service)?.name}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-semibold text-primary-900">Contact:</span>
+                  <span className="text-primary-900">
+                    {formData.firstName} {formData.lastName}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-semibold text-primary-900">Phone:</span>
+                  <span className="text-primary-900">{formData.phone}</span>
+                </div>
+                <div className="border-t border-accent-500 pt-4 mt-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xl font-bold text-primary-900">Estimated Price:</span>
+                    <span className="text-3xl font-bold text-accent-600">${totalPrice}</span>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-primary-900 mb-6">
+                We'll call you at <strong>{formData.phone}</strong> to confirm your service details and
+                lock in this price.
+              </p>
+
+              <Link
+                href="/"
+                className="block w-full btn bg-accent-500 text-primary-900 hover:bg-accent-400 font-bold text-center py-3"
+              >
+                Back to Home
+              </Link>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* Hero */}
@@ -8,214 +182,355 @@ export default function QuotePage() {
         <div className="section-container">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">Get Your Free Quote</h1>
           <p className="text-lg text-white">
-            Professional pricing. No obligations. Same-day service available.
+            Professional pricing. Real-time estimates. No obligations.
           </p>
         </div>
       </section>
 
-      {/* Quote Funnel Section */}
+      {/* Quote Form Section */}
       <section className="section">
-        <div className="section-container max-w-4xl">
-          {/* INTEGRATION POINT: Quote Funnel URL */}
-          {/*
-            TODO: Replace the form below with the actual quote funnel URL
-            The quote funnel should be inserted here via iframe or redirect
-            Expected funnel URL format: https://[quote-funnel-provider].com/[project-id]
+        <div className="section-container max-w-3xl">
+          {/* Progress Bar */}
+          <div className="mb-8">
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-white font-semibold">
+                Step {step} of {totalSteps}
+              </span>
+              <span className="text-accent-400 font-semibold">
+                {Math.round((step / totalSteps) * 100)}% Complete
+              </span>
+            </div>
+            <div className="w-full bg-primary-700 rounded-full h-3">
+              <div
+                className="bg-gradient-to-r from-accent-500 to-accent-600 h-3 rounded-full transition-all duration-300"
+                style={{ width: `${(step / totalSteps) * 100}%` }}
+              ></div>
+            </div>
+          </div>
 
-            For now, keeping basic contact form as fallback.
-            When funnel is ready, update the href below and replace the form.
-          */}
-
-          <div className="grid md:grid-cols-3 gap-12">
-            {/* Quick Form / Funnel Entry */}
-            <div className="md:col-span-2">
-              <h2 className="text-2xl font-bold mb-4">Get Your Custom Quote</h2>
-              <p className="text-white mb-8">
-                Use our interactive quote tool to select your service, specify your needs, and get an instant estimate. Takes just 2 minutes.
+          {/* Current Price Display */}
+          <div className="bg-gradient-to-r from-accent-600 to-accent-500 rounded-xl p-6 mb-8">
+            <p className="text-primary-900 text-sm font-semibold mb-2">Estimated Price</p>
+            <div className="text-4xl font-bold text-primary-900">${totalPrice}</div>
+            {formData.frequency === "recurring" && (
+              <p className="text-primary-800 text-sm mt-2">
+                ✓ 20% recurring discount applied
               </p>
+            )}
+          </div>
 
-              <form className="space-y-6">
-                {/* Name */}
-                <div>
-                  <label className="block text-white font-semibold mb-2">Full Name</label>
-                  <input
-                    type="text"
-                    placeholder="John Smith"
-                    className="w-full px-4 py-3 border border-gray-400 rounded-lg bg-white text-primary-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent-500"
-                  />
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Step 1: Service Selection */}
+            {step === 1 && (
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-6">
+                  What can we help you with?
+                </h2>
+                <div className="space-y-3">
+                  {serviceOptions.map((service) => (
+                    <label
+                      key={service.id}
+                      className="flex items-center p-4 border-2 border-primary-600 rounded-lg cursor-pointer hover:bg-primary-700 transition"
+                    >
+                      <input
+                        type="radio"
+                        name="service"
+                        value={service.id}
+                        checked={formData.service === service.id}
+                        onChange={(e) =>
+                          setFormData({ ...formData, service: e.target.value })
+                        }
+                        className="w-5 h-5 text-accent-500 cursor-pointer"
+                      />
+                      <span className="ml-4 flex-1 text-white font-medium">
+                        {service.name}
+                      </span>
+                      <span className="text-accent-400 font-semibold">
+                        From ${service.basePrice}
+                      </span>
+                    </label>
+                  ))}
                 </div>
+              </div>
+            )}
 
-                {/* Phone */}
-                <div>
-                  <label className="block text-white font-semibold mb-2">Phone Number</label>
-                  <input
-                    type="tel"
-                    placeholder="(469) 929-7722"
-                    className="w-full px-4 py-3 border border-gray-400 rounded-lg bg-white text-primary-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent-500"
-                  />
+            {/* Step 2: Property Details */}
+            {step === 2 && (
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-6">Tell us about your space</h2>
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-white font-semibold mb-3">
+                      How many bedrooms?
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="10"
+                      value={formData.bedrooms}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          bedrooms: parseInt(e.target.value),
+                        })
+                      }
+                      className="w-full h-2 bg-primary-700 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div className="text-center text-accent-400 font-bold text-xl mt-2">
+                      {formData.bedrooms} Bedrooms
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-white font-semibold mb-3">
+                      How many bathrooms?
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="8"
+                      value={formData.bathrooms}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          bathrooms: parseInt(e.target.value),
+                        })
+                      }
+                      className="w-full h-2 bg-primary-700 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div className="text-center text-accent-400 font-bold text-xl mt-2">
+                      {formData.bathrooms} Bathrooms
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-white font-semibold mb-3">
+                      How often do you need this service?
+                    </label>
+                    <select
+                      value={formData.frequency}
+                      onChange={(e) =>
+                        setFormData({ ...formData, frequency: e.target.value })
+                      }
+                      className="w-full px-4 py-3 border border-accent-500 rounded-lg bg-primary-700 text-white focus:outline-none focus:ring-2 focus:ring-accent-500"
+                    >
+                      <option value="one-time">One Time</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="bi-weekly">Bi-Weekly</option>
+                      <option value="monthly">Monthly</option>
+                      <option value="recurring">Recurring (20% Discount)</option>
+                    </select>
+                  </div>
                 </div>
+              </div>
+            )}
 
-                {/* Email */}
-                <div>
-                  <label className="block text-white font-semibold mb-2">Email Address</label>
-                  <input
-                    type="email"
-                    placeholder="john@example.com"
-                    className="w-full px-4 py-3 border border-gray-400 rounded-lg bg-white text-primary-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent-500"
-                  />
+            {/* Step 3: Add-Ons */}
+            {step === 3 && (
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-6">Any add-ons?</h2>
+                <p className="text-white mb-6">Select services to add to your quote</p>
+                <div className="space-y-3">
+                  {addOnOptions.map((addOn) => (
+                    <label
+                      key={addOn.id}
+                      className="flex items-center p-4 border-2 border-primary-600 rounded-lg cursor-pointer hover:bg-primary-700 transition"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formData.addOns.includes(addOn.id)}
+                        onChange={() => handleAddOnToggle(addOn.id)}
+                        className="w-5 h-5 text-accent-500 cursor-pointer"
+                      />
+                      <span className="ml-4 flex-1 text-white font-medium">
+                        {addOn.name}
+                      </span>
+                      <span className="text-accent-400 font-semibold">
+                        +${addOn.price}
+                      </span>
+                    </label>
+                  ))}
                 </div>
+              </div>
+            )}
 
-                {/* Service */}
-                <div>
-                  <label className="block text-white font-semibold mb-2">Service Needed</label>
-                  <select className="w-full px-4 py-3 border border-gray-400 rounded-lg bg-white text-primary-900 focus:outline-none focus:ring-2 focus:ring-accent-500">
-                    <option value="">Select a service</option>
-                    <option value="residential-cleaning">Residential Cleaning</option>
-                    <option value="deep-cleaning">Deep Cleaning</option>
-                    <option value="commercial-cleaning">Commercial Cleaning</option>
-                    <option value="post-construction">Post-Construction Cleanup</option>
-                    <option value="demolition">Demolition Services</option>
-                    <option value="junk-removal">Junk Removal</option>
-                    <option value="power-washing">Power Washing</option>
-                    <option value="handyman">Handyman Services</option>
-                    <option value="moving">Moving Services</option>
-                    <option value="vacation-rental">Vacation Rental Cleaning</option>
-                    <option value="move-in-move-out">Move-In / Move-Out Cleaning</option>
-                    <option value="landlord">Landlord Services</option>
-                    <option value="real-estate">Real Estate Services</option>
-                  </select>
+            {/* Step 4: Timing */}
+            {step === 4 && (
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-6">When do you need service?</h2>
+                <div className="space-y-3">
+                  {[
+                    { id: "asap", label: "ASAP / Same Day" },
+                    { id: "this-week", label: "This Week" },
+                    { id: "next-week", label: "Next Week" },
+                    { id: "flexible", label: "Flexible" },
+                  ].map((timing) => (
+                    <label
+                      key={timing.id}
+                      className="flex items-center p-4 border-2 border-primary-600 rounded-lg cursor-pointer hover:bg-primary-700 transition"
+                    >
+                      <input
+                        type="radio"
+                        name="timing"
+                        value={timing.id}
+                        checked={formData.timing === timing.id}
+                        onChange={(e) =>
+                          setFormData({ ...formData, timing: e.target.value })
+                        }
+                        className="w-5 h-5 text-accent-500"
+                      />
+                      <span className="ml-4 flex-1 text-white font-medium">
+                        {timing.label}
+                      </span>
+                    </label>
+                  ))}
                 </div>
+              </div>
+            )}
 
-                {/* Property Type */}
-                <div>
-                  <label className="block text-white font-semibold mb-2">Property Type</label>
-                  <select className="w-full px-4 py-3 border border-gray-400 rounded-lg bg-white text-primary-900 focus:outline-none focus:ring-2 focus:ring-accent-500">
-                    <option value="">Select property type</option>
-                    <option value="residential">House/Residential</option>
-                    <option value="apartment">Apartment/Condo</option>
-                    <option value="commercial-office">Commercial Office</option>
-                    <option value="retail">Retail Space</option>
-                    <option value="warehouse">Warehouse/Industrial</option>
-                    <option value="medical">Medical Facility</option>
-                    <option value="restaurant">Restaurant/Food Service</option>
-                    <option value="other">Other</option>
-                  </select>
+            {/* Step 5: Contact Info */}
+            {step === 5 && (
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-6">Your Information</h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-white font-semibold mb-2">
+                      First Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.firstName}
+                      onChange={(e) =>
+                        setFormData({ ...formData, firstName: e.target.value })
+                      }
+                      className="w-full px-4 py-3 border border-gray-400 rounded-lg bg-white text-primary-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent-500"
+                      placeholder="John"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-white font-semibold mb-2">
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.lastName}
+                      onChange={(e) =>
+                        setFormData({ ...formData, lastName: e.target.value })
+                      }
+                      className="w-full px-4 py-3 border border-gray-400 rounded-lg bg-white text-primary-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent-500"
+                      placeholder="Smith"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-white font-semibold mb-2">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={formData.phone}
+                      onChange={(e) =>
+                        setFormData({ ...formData, phone: e.target.value })
+                      }
+                      className="w-full px-4 py-3 border border-gray-400 rounded-lg bg-white text-primary-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent-500"
+                      placeholder="(469) 929-7722"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-white font-semibold mb-2">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={formData.email}
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: e.target.value })
+                      }
+                      className="w-full px-4 py-3 border border-gray-400 rounded-lg bg-white text-primary-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent-500"
+                      placeholder="john@example.com"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-white font-semibold mb-2">
+                      Service Address
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.address}
+                      onChange={(e) =>
+                        setFormData({ ...formData, address: e.target.value })
+                      }
+                      className="w-full px-4 py-3 border border-gray-400 rounded-lg bg-white text-primary-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent-500"
+                      placeholder="123 Main St, Rowlett, TX 75089"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-white font-semibold mb-2">
+                      Anything else we should know? (Optional)
+                    </label>
+                    <textarea
+                      value={formData.notes}
+                      onChange={(e) =>
+                        setFormData({ ...formData, notes: e.target.value })
+                      }
+                      className="w-full px-4 py-3 border border-gray-400 rounded-lg bg-white text-primary-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent-500"
+                      placeholder="Any special requests or details..."
+                      rows={4}
+                    />
+                  </div>
                 </div>
+              </div>
+            )}
 
-                {/* Property Size */}
-                <div>
-                  <label className="block text-white font-semibold mb-2">Property Size (sq ft)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g., 3000"
-                    className="w-full px-4 py-3 border border-gray-400 rounded-lg bg-white text-primary-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent-500"
-                  />
-                </div>
+            {/* Navigation Buttons */}
+            <div className="flex gap-4 pt-8">
+              {step > 1 && (
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  className="flex-1 btn bg-primary-700 text-white hover:bg-primary-600 font-bold border border-accent-500"
+                >
+                  Back
+                </button>
+              )}
 
-                {/* Timeline */}
-                <div>
-                  <label className="block text-white font-semibold mb-2">When do you need service?</label>
-                  <select className="w-full px-4 py-3 border border-gray-400 rounded-lg bg-white text-primary-900 focus:outline-none focus:ring-2 focus:ring-accent-500">
-                    <option value="">Select timeline</option>
-                    <option value="asap">ASAP / Today</option>
-                    <option value="this-week">This Week</option>
-                    <option value="next-week">Next Week</option>
-                    <option value="within-month">Within a Month</option>
-                    <option value="flexible">Flexible</option>
-                  </select>
-                </div>
-
-                {/* Details */}
-                <div>
-                  <label className="block text-white font-semibold mb-2">Project Details</label>
-                  <textarea
-                    placeholder="Tell us more about your project, any special requirements, or specific areas that need attention..."
-                    rows={5}
-                    className="w-full px-4 py-3 border border-gray-400 rounded-lg bg-white text-primary-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent-500"
-                  ></textarea>
-                </div>
-
-                {/* Submit */}
+              {step < totalSteps ? (
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  disabled={
+                    (step === 1 && !formData.service) ||
+                    (step === 5 &&
+                      (!formData.firstName ||
+                        !formData.lastName ||
+                        !formData.phone ||
+                        !formData.email ||
+                        !formData.address))
+                  }
+                  className="flex-1 btn bg-accent-500 text-primary-900 hover:bg-accent-400 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Continue
+                </button>
+              ) : (
                 <button
                   type="submit"
-                  className="w-full bg-accent-500 text-primary-900 font-bold py-3 rounded-lg hover:bg-accent-400 transition"
+                  className="flex-1 btn bg-accent-500 text-primary-900 hover:bg-accent-400 font-bold text-lg py-4"
                 >
-                  Get Your Free Quote
+                  Get My Estimate
                 </button>
-
-                <p className="text-sm text-white text-center">
-                  We typically respond within 2 hours during business hours
-                </p>
-              </form>
+              )}
             </div>
-
-            {/* Sidebar Info */}
-            <div className="md:col-span-1">
-              <div className="bg-primary-800 rounded-lg p-6 mb-6 border border-accent-500">
-                <h3 className="font-bold text-lg text-white mb-4">Quick Info</h3>
-                <div className="space-y-4 text-sm text-white">
-                  <div>
-                    <p className="font-semibold mb-1">Response Time</p>
-                    <p>Usually within 2 hours</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold mb-1">No Obligation</p>
-                    <p>Free quote, no commitment</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold mb-1">Same-Day Service</p>
-                    <p>Call before 10 AM</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold mb-1">All Services Covered</p>
-                    <p>Cleaning, demolition, junk removal, and more</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-primary-800 rounded-lg p-6 border border-accent-500">
-                <h3 className="font-bold text-lg text-white mb-4">Call Us Directly</h3>
-                <a href="tel:+14699297722" className="block text-accent-400 font-bold text-lg hover:text-accent-300 mb-2">
-                  (469) 929-7722
-                </a>
-                <a href="tel:9409023030" className="block text-accent-400 font-bold text-lg hover:text-accent-300 mb-4">
-                  (940) 902-3030
-                </a>
-                <p className="text-sm text-white">
-                  Available Monday-Sunday
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Service Info Cards */}
-      <section className="section bg-primary-800">
-        <div className="section-container">
-          <h2 className="text-3xl font-bold mb-12 text-center text-white">What to Expect</h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-accent-400 mb-3">1</div>
-              <h3 className="font-bold text-white mb-2">Submit Your Info</h3>
-              <p className="text-sm text-white">Tell us about your project through our form or call</p>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-accent-400 mb-3">2</div>
-              <h3 className="font-bold text-white mb-2">Quick Assessment</h3>
-              <p className="text-sm text-white">We review your project details and scope</p>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-accent-400 mb-3">3</div>
-              <h3 className="font-bold text-white mb-2">Free Quote</h3>
-              <p className="text-sm text-white">Transparent pricing with no hidden fees</p>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-accent-400 mb-3">4</div>
-              <h3 className="font-bold text-white mb-2">Schedule Service</h3>
-              <p className="text-sm text-white">Pick your preferred date and time</p>
-            </div>
-          </div>
+          </form>
         </div>
       </section>
     </div>
