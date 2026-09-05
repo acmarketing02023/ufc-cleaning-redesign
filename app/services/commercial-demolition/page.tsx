@@ -18,10 +18,10 @@ export default function CommercialDemolitionPage() {
               Residential & Commercial
             </div>
             <div className="bg-primary-700 px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2">
-              <span>⚡</span> <2 Weeks
+              Under 2 Weeks
             </div>
-            <div className="bg-primary-700 px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2">
-              <span>✓</span> All Non-Licensed Work Included
+            <div className="bg-primary-700 px-4 py-2 rounded-full text-sm font-semibold">
+              All Non-Licensed Work Included
             </div>
           </div>
 
@@ -31,9 +31,9 @@ export default function CommercialDemolitionPage() {
             </Link>
             <a
               href="tel:2148179212"
-              className="btn bg-primary-700 text-white hover:bg-primary-800 btn-primary-lg flex items-center justify-center gap-2"
+              className="btn bg-primary-700 text-white hover:bg-primary-800 btn-primary-lg"
             >
-              <span>📞</span> (214) 817-9212
+              Call (214) 817-9212
             </a>
           </div>
         </div>
@@ -85,7 +85,7 @@ export default function CommercialDemolitionPage() {
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-accent-500 font-bold text-xl">✓</span>
-                  <span className="text-primary-900"><2 week turnaround</span>
+                  <span className="text-primary-900">Under 2 week turnaround</span>
                 </li>
               </ul>
 
