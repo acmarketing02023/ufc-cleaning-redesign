@@ -177,17 +177,8 @@ export default function CommercialDemolitionPage() {
             We serve a 60-mile radius from Rowlett, including all major DFW cities. Click below to see services in your area.
           </p>
 
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 max-w-4xl mx-auto">
-            <Link href="/services/demolition-rowlett" className="bg-primary-700 border border-accent-500 rounded-lg p-4 text-center hover:bg-primary-600 transition text-white font-semibold">Rowlett</Link>
-            <Link href="/services/demolition-dallas" className="bg-primary-700 border border-accent-500 rounded-lg p-4 text-center hover:bg-primary-600 transition text-white font-semibold">Dallas</Link>
-            <Link href="/services/demolition-garland" className="bg-primary-700 border border-accent-500 rounded-lg p-4 text-center hover:bg-primary-600 transition text-white font-semibold">Garland</Link>
-            <Link href="/services/demolition-plano" className="bg-primary-700 border border-accent-500 rounded-lg p-4 text-center hover:bg-primary-600 transition text-white font-semibold">Plano</Link>
-            <Link href="/services/demolition-fort-worth" className="bg-primary-700 border border-accent-500 rounded-lg p-4 text-center hover:bg-primary-600 transition text-white font-semibold">Fort Worth</Link>
-            <Link href="/services/demolition-arlington" className="bg-primary-700 border border-accent-500 rounded-lg p-4 text-center hover:bg-primary-600 transition text-white font-semibold">Arlington</Link>
-            <Link href="/services/demolition-irving" className="bg-primary-700 border border-accent-500 rounded-lg p-4 text-center hover:bg-primary-600 transition text-white font-semibold">Irving</Link>
-            <Link href="/services/demolition-rockwall" className="bg-primary-700 border border-accent-500 rounded-lg p-4 text-center hover:bg-primary-600 transition text-white font-semibold">Rockwall</Link>
-            <Link href="/services/demolition-frisco" className="bg-primary-700 border border-accent-500 rounded-lg p-4 text-center hover:bg-primary-600 transition text-white font-semibold">Frisco</Link>
-            <Link href="/services/demolition-mckinney" className="bg-primary-700 border border-accent-500 rounded-lg p-4 text-center hover:bg-primary-600 transition text-white font-semibold">McKinney</Link>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+            <Link href="/locations" className="bg-primary-700 border border-accent-500 rounded-lg p-4 text-center hover:bg-primary-600 transition text-white font-semibold">View All Service Areas</Link>
           </div>
         </div>
       </section>
