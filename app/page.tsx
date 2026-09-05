@@ -308,12 +308,12 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid gap-6 w-full" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', justifyItems: 'center' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
             {services.map((service, idx) => (
               <Link
                 key={idx}
                 href={service.href}
-                className="group bg-primary-50 border border-gray-200 rounded-xl p-6 hover:border-primary-300 hover:shadow-lg transition-all"
+                className="group bg-primary-50 border border-gray-200 rounded-xl p-6 hover:border-primary-300 hover:shadow-lg transition-all h-full"
               >
                 <h3 className="font-bold text-lg mb-2 group-hover:text-primary-600 transition">
                   {service.title}

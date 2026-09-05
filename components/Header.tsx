@@ -12,7 +12,7 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           {/* Logo */}
-          <Link href="/" className="flex items-center flex-shrink-0 -ml-2">
+          <Link href="/" className="flex items-center flex-shrink-0 mr-6">
             <Image
               src="/ufc-logo.png"
               alt="UFC Cleaning Logo"
@@ -170,12 +170,6 @@ export default function Header() {
 
           {/* Right side actions */}
           <div className="flex items-center gap-4">
-            <a
-              href="tel:+14699297722"
-              className="hidden sm:flex items-center gap-2 text-white font-semibold hover:text-accent-300 transition"
-            >
-              <span className="text-sm">(469) 929-7722</span>
-            </a>
             <Link
               href="/quote"
               className="btn btn-primary text-sm md:text-base"
