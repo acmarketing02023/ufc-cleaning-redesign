@@ -149,7 +149,7 @@ export default function CommercialDemolitionPage() {
             <div className="border border-primary-600 rounded-lg p-6">
               <h3 className="text-xl font-bold mb-4 text-white">Commercial Demolition</h3>
               <p className="text-white mb-4">Commercial buildings, warehouses, multi-unit properties. Custom quotes based on scope.</p>
-              <p className="text-sm text-accent-400">Completed in <2 weeks</p>
+              <p className="text-sm text-accent-400">Completed in under 2 weeks</p>
             </div>
 
             <div className="border border-primary-600 rounded-lg p-6">
