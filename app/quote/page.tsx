@@ -130,45 +130,122 @@ export default function QuotePage() {
           <div className="section-container">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">Quote Submitted!</h1>
             <p className="text-lg text-white">
-              Thank you for using our quote tool. We'll call you shortly to confirm details.
+              Thank you for your request. We've calculated your estimate based on your selections.
             </p>
           </div>
         </section>
 
         <section className="section">
           <div className="section-container max-w-2xl">
-            <div className="bg-primary-50 border-2 border-accent-500 rounded-xl p-8">
-              <h2 className="text-3xl font-bold text-primary-900 mb-6">Your Quote Summary</h2>
+            {/* Main Estimate Display */}
+            <div className="bg-gradient-to-br from-accent-600 to-accent-500 rounded-xl p-8 mb-8 text-center">
+              <p className="text-primary-900 text-sm font-semibold mb-3">YOUR ESTIMATED QUOTE</p>
+              <div className="text-6xl font-bold text-primary-900 mb-3">${totalPrice}</div>
+              {formData.frequency === "recurring" && (
+                <p className="text-primary-800 text-sm">
+                  ✓ 20% recurring service discount already applied
+                </p>
+              )}
+            </div>
 
-              <div className="space-y-4 mb-8">
-                <div className="flex justify-between">
-                  <span className="font-semibold text-primary-900">Service:</span>
-                  <span className="text-primary-900">
+            {/* Summary Card */}
+            <div className="bg-primary-50 border-2 border-accent-500 rounded-xl p-8 mb-8">
+              <h2 className="text-2xl font-bold text-primary-900 mb-6">Your Project Details</h2>
+
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-primary-700 font-semibold mb-1">Service Selected</p>
+                  <p className="text-lg text-primary-900">
                     {serviceOptions.find((s) => s.id === formData.service)?.name}
-                  </span>
+                  </p>
                 </div>
-                <div className="flex justify-between">
-                  <span className="font-semibold text-primary-900">Contact:</span>
-                  <span className="text-primary-900">
-                    {formData.firstName} {formData.lastName}
-                  </span>
+
+                {["residential-cleaning", "deep-cleaning", "post-construction"].includes(formData.service) && (
+                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-primary-200">
+                    <div>
+                      <p className="text-sm text-primary-700 font-semibold">Bedrooms</p>
+                      <p className="text-lg text-primary-900">{formData.bedrooms}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-primary-700 font-semibold">Bathrooms</p>
+                      <p className="text-lg text-primary-900">{formData.bathrooms}</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="pt-4 border-t border-primary-200">
+                  <p className="text-sm text-primary-700 font-semibold mb-1">Service Frequency</p>
+                  <p className="text-lg text-primary-900 capitalize">
+                    {formData.frequency === "one-time" ? "One Time" : formData.frequency.charAt(0).toUpperCase() + formData.frequency.slice(1)}
+                  </p>
                 </div>
-                <div className="flex justify-between">
-                  <span className="font-semibold text-primary-900">Phone:</span>
-                  <span className="text-primary-900">{formData.phone}</span>
+
+                {formData.addOns.length > 0 && (
+                  <div className="pt-4 border-t border-primary-200">
+                    <p className="text-sm text-primary-700 font-semibold mb-2">Add-Ons Selected</p>
+                    <ul className="space-y-1">
+                      {formData.addOns.map((addOnId) => {
+                        const addOn = addOnOptions.find((a) => a.id === addOnId);
+                        return (
+                          <li key={addOnId} className="text-primary-900">
+                            • {addOn?.name}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+
+                <div className="pt-4 border-t border-primary-200">
+                  <p className="text-sm text-primary-700 font-semibold mb-1">Preferred Timeline</p>
+                  <p className="text-lg text-primary-900 capitalize">
+                    {formData.timing === "asap" ? "ASAP / Same Day" : formData.timing === "this-week" ? "This Week" : formData.timing === "next-week" ? "Next Week" : "Flexible"}
+                  </p>
                 </div>
-                <div className="border-t border-accent-500 pt-4 mt-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xl font-bold text-primary-900">Estimated Price:</span>
-                    <span className="text-3xl font-bold text-accent-600">${totalPrice}</span>
+              </div>
+            </div>
+
+            {/* Contact & Next Steps */}
+            <div className="bg-primary-50 border-2 border-primary-200 rounded-xl p-8">
+              <h3 className="text-xl font-bold text-primary-900 mb-4">What Happens Next</h3>
+
+              <div className="space-y-4 mb-6">
+                <div className="flex gap-4">
+                  <div className="flex-shrink-0 w-8 h-8 bg-accent-500 text-primary-900 font-bold rounded-full flex items-center justify-center">1</div>
+                  <div>
+                    <p className="font-semibold text-primary-900">We'll Call You</p>
+                    <p className="text-sm text-primary-700">
+                      We'll reach out to <strong>{formData.phone}</strong> to confirm the details and lock in your price of <strong>${totalPrice}</strong>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="flex-shrink-0 w-8 h-8 bg-accent-500 text-primary-900 font-bold rounded-full flex items-center justify-center">2</div>
+                  <div>
+                    <p className="font-semibold text-primary-900">Schedule Your Service</p>
+                    <p className="text-sm text-primary-700">
+                      Pick a time that works for you during your preferred timeline
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="flex-shrink-0 w-8 h-8 bg-accent-500 text-primary-900 font-bold rounded-full flex items-center justify-center">3</div>
+                  <div>
+                    <p className="font-semibold text-primary-900">We'll Complete Your Service</p>
+                    <p className="text-sm text-primary-700">
+                      Our team will show up on time and complete the work exactly as quoted
+                    </p>
                   </div>
                 </div>
               </div>
 
-              <p className="text-primary-900 mb-6">
-                We'll call you at <strong>{formData.phone}</strong> to confirm your service details and
-                lock in this price.
-              </p>
+              <div className="bg-accent-100 border border-accent-300 rounded-lg p-4 mb-6">
+                <p className="text-sm text-primary-900">
+                  <strong>Email confirmation sent to:</strong> {formData.email}
+                </p>
+              </div>
 
               <Link
                 href="/"
@@ -216,17 +293,6 @@ export default function QuotePage() {
             </div>
           </div>
 
-          {/* Current Price Display */}
-          <div className="bg-gradient-to-r from-accent-600 to-accent-500 rounded-xl p-6 mb-8">
-            <p className="text-primary-900 text-sm font-semibold mb-2">Estimated Price</p>
-            <div className="text-4xl font-bold text-primary-900">${totalPrice}</div>
-            {formData.frequency === "recurring" && (
-              <p className="text-primary-800 text-sm mt-2">
-                ✓ 20% recurring discount applied
-              </p>
-            )}
-          </div>
-
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Step 1: Service Selection */}
@@ -248,9 +314,6 @@ export default function QuotePage() {
                       </div>
                       <span className="flex-1 text-white font-medium">
                         {service.name}
-                      </span>
-                      <span className="text-accent-400 font-semibold">
-                        From ${service.basePrice}
                       </span>
                     </button>
                   ))}
@@ -322,7 +385,7 @@ export default function QuotePage() {
                       <option value="weekly">Weekly</option>
                       <option value="bi-weekly">Bi-Weekly</option>
                       <option value="monthly">Monthly</option>
-                      <option value="recurring">Recurring (20% Discount)</option>
+                      <option value="recurring">Recurring</option>
                     </select>
                   </div>
                 </div>
@@ -348,9 +411,6 @@ export default function QuotePage() {
                       />
                       <span className="ml-4 flex-1 text-white font-medium">
                         {addOn.name}
-                      </span>
-                      <span className="text-accent-400 font-semibold">
-                        +${addOn.price}
                       </span>
                     </label>
                   ))}
