@@ -91,12 +91,14 @@ export default function QuotePage() {
   const totalPrice = calculatePrice();
   const totalSteps = 5;
 
-  const handleNext = () => {
-    if (step < totalSteps) setStep(step + 1);
-  };
-
   const handleBack = () => {
     if (step > 1) setStep(step - 1);
+  };
+
+  const handleServiceSelect = (serviceId: string) => {
+    setFormData({ ...formData, service: serviceId });
+    // Auto-advance to step 2
+    setTimeout(() => setStep(2), 300);
   };
 
   const handleAddOnToggle = (addOnId: string) => {
@@ -106,6 +108,12 @@ export default function QuotePage() {
         ? prev.addOns.filter((id) => id !== addOnId)
         : [...prev.addOns, addOnId],
     }));
+  };
+
+  const handleTimingSelect = (timingId: string) => {
+    setFormData({ ...formData, timing: timingId });
+    // Auto-advance to step 5 (contact info)
+    setTimeout(() => setStep(5), 300);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -229,27 +237,22 @@ export default function QuotePage() {
                 </h2>
                 <div className="space-y-3">
                   {serviceOptions.map((service) => (
-                    <label
+                    <button
                       key={service.id}
-                      className="flex items-center p-4 border-2 border-primary-600 rounded-lg cursor-pointer hover:bg-primary-700 transition"
+                      type="button"
+                      onClick={() => handleServiceSelect(service.id)}
+                      className="w-full flex items-center p-4 border-2 border-primary-600 rounded-lg cursor-pointer hover:bg-primary-700 hover:border-accent-500 transition text-left"
                     >
-                      <input
-                        type="radio"
-                        name="service"
-                        value={service.id}
-                        checked={formData.service === service.id}
-                        onChange={(e) =>
-                          setFormData({ ...formData, service: e.target.value })
-                        }
-                        className="w-5 h-5 text-accent-500 cursor-pointer"
-                      />
-                      <span className="ml-4 flex-1 text-white font-medium">
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-4 ${formData.service === service.id ? 'border-accent-500 bg-accent-500' : 'border-gray-400'}`}>
+                        {formData.service === service.id && <div className="w-2 h-2 bg-primary-900"></div>}
+                      </div>
+                      <span className="flex-1 text-white font-medium">
                         {service.name}
                       </span>
                       <span className="text-accent-400 font-semibold">
                         From ${service.basePrice}
                       </span>
-                    </label>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -366,24 +369,19 @@ export default function QuotePage() {
                     { id: "next-week", label: "Next Week" },
                     { id: "flexible", label: "Flexible" },
                   ].map((timing) => (
-                    <label
+                    <button
                       key={timing.id}
-                      className="flex items-center p-4 border-2 border-primary-600 rounded-lg cursor-pointer hover:bg-primary-700 transition"
+                      type="button"
+                      onClick={() => handleTimingSelect(timing.id)}
+                      className="w-full flex items-center p-4 border-2 border-primary-600 rounded-lg cursor-pointer hover:bg-primary-700 hover:border-accent-500 transition text-left"
                     >
-                      <input
-                        type="radio"
-                        name="timing"
-                        value={timing.id}
-                        checked={formData.timing === timing.id}
-                        onChange={(e) =>
-                          setFormData({ ...formData, timing: e.target.value })
-                        }
-                        className="w-5 h-5 text-accent-500"
-                      />
-                      <span className="ml-4 flex-1 text-white font-medium">
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-4 ${formData.timing === timing.id ? 'border-accent-500 bg-accent-500' : 'border-gray-400'}`}>
+                        {formData.timing === timing.id && <div className="w-2 h-2 bg-primary-900"></div>}
+                      </div>
+                      <span className="flex-1 text-white font-medium">
                         {timing.label}
                       </span>
-                    </label>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -500,28 +498,31 @@ export default function QuotePage() {
                   onClick={handleBack}
                   className="flex-1 btn bg-primary-700 text-white hover:bg-primary-600 font-bold border border-accent-500"
                 >
-                  Back
+                  ← Back
                 </button>
               )}
 
-              {step < totalSteps ? (
+              {step === 2 && (
                 <button
                   type="button"
-                  onClick={handleNext}
-                  disabled={
-                    (step === 1 && !formData.service) ||
-                    (step === 5 &&
-                      (!formData.firstName ||
-                        !formData.lastName ||
-                        !formData.phone ||
-                        !formData.email ||
-                        !formData.address))
-                  }
-                  className="flex-1 btn bg-accent-500 text-primary-900 hover:bg-accent-400 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => setStep(3)}
+                  className="flex-1 btn bg-accent-500 text-primary-900 hover:bg-accent-400 font-bold"
                 >
-                  Continue
+                  Next →
                 </button>
-              ) : (
+              )}
+
+              {step === 3 && (
+                <button
+                  type="button"
+                  onClick={() => setStep(4)}
+                  className="flex-1 btn bg-accent-500 text-primary-900 hover:bg-accent-400 font-bold"
+                >
+                  Next →
+                </button>
+              )}
+
+              {step === 5 && (
                 <button
                   type="submit"
                   className="flex-1 btn bg-accent-500 text-primary-900 hover:bg-accent-400 font-bold text-lg py-4"
