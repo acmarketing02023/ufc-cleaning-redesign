@@ -13,13 +13,26 @@ export default function QuotePage() {
         </div>
       </section>
 
-      {/* Quote Form Section */}
+      {/* Quote Funnel Section */}
       <section className="section">
-        <div className="section-container max-w-3xl">
+        <div className="section-container max-w-4xl">
+          {/* INTEGRATION POINT: Quote Funnel URL */}
+          {/*
+            TODO: Replace the form below with the actual quote funnel URL
+            The quote funnel should be inserted here via iframe or redirect
+            Expected funnel URL format: https://[quote-funnel-provider].com/[project-id]
+
+            For now, keeping basic contact form as fallback.
+            When funnel is ready, update the href below and replace the form.
+          */}
+
           <div className="grid md:grid-cols-3 gap-12">
-            {/* Form */}
+            {/* Quick Form / Funnel Entry */}
             <div className="md:col-span-2">
-              <h2 className="text-2xl font-bold mb-8">Tell Us About Your Project</h2>
+              <h2 className="text-2xl font-bold mb-4">Get Your Custom Quote</h2>
+              <p className="text-white mb-8">
+                Use our interactive quote tool to select your service, specify your needs, and get an instant estimate. Takes just 2 minutes.
+              </p>
 
               <form className="space-y-6">
                 {/* Name */}
@@ -37,7 +50,7 @@ export default function QuotePage() {
                   <label className="block text-white font-semibold mb-2">Phone Number</label>
                   <input
                     type="tel"
-                    placeholder="(214) 817-9212"
+                    placeholder="(469) 929-7722"
                     className="w-full px-4 py-3 border border-gray-400 rounded-lg bg-white text-primary-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent-500"
                   />
                 </div>
@@ -162,8 +175,8 @@ export default function QuotePage() {
 
               <div className="bg-primary-800 rounded-lg p-6 border border-accent-500">
                 <h3 className="font-bold text-lg text-white mb-4">Call Us Directly</h3>
-                <a href="tel:2148179212" className="block text-accent-400 font-bold text-lg hover:text-accent-300 mb-2">
-                  (214) 817-9212
+                <a href="tel:+14699297722" className="block text-accent-400 font-bold text-lg hover:text-accent-300 mb-2">
+                  (469) 929-7722
                 </a>
                 <a href="tel:9409023030" className="block text-accent-400 font-bold text-lg hover:text-accent-300 mb-4">
                   (940) 902-3030

@@ -156,10 +156,10 @@ export default function Home() {
                   Get a Free Quote
                 </Link>
                 <a
-                  href="tel:2148179212"
+                  href="tel:+14699297722"
                   className="btn bg-accent-500 text-primary-900 hover:bg-accent-400 btn-primary-lg text-center font-bold"
                 >
-                  Call Now: (214) 817-9212
+                  Call Now: (469) 929-7722
                 </a>
               </div>
             </div>
@@ -239,6 +239,24 @@ export default function Home() {
               </form>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* PROMINENT QUOTE SECTION */}
+      <section className="bg-gradient-to-r from-accent-600 to-accent-500 py-16 md:py-24">
+        <div className="section-container text-center">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary-900 mb-4">
+            How Much Will It Cost?
+          </h2>
+          <p className="text-lg md:text-xl text-primary-800 mb-8 max-w-2xl mx-auto">
+            Get a fast estimate for your project in just a couple of minutes. No obligation, no pressure.
+          </p>
+          <Link
+            href="/quote"
+            className="inline-block bg-primary-900 text-white hover:bg-primary-800 font-bold py-4 px-10 rounded-lg transition-all text-lg"
+          >
+            GET FREE QUOTE NOW
+          </Link>
         </div>
       </section>
 
@@ -673,10 +691,10 @@ export default function Home() {
               Get Free Quote
             </Link>
             <a
-              href="tel:2148179212"
+              href="tel:+14699297722"
               className="btn bg-primary-700 text-white hover:bg-primary-800 btn-primary-lg"
             >
-              Call (214) 817-9212
+              Call (469) 929-7722
             </a>
           </div>
 

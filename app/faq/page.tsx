@@ -8,7 +8,7 @@ export default function FAQPage() {
   const faqs = [
     {
       question: "How quickly can you provide a quote?",
-      answer: "We typically provide quotes within 2 hours during business hours. For urgent requests, call us directly at (214) 817-9212 and we can often provide an estimate over the phone immediately."
+      answer: "We typically provide quotes within 2 hours during business hours. For urgent requests, call us directly at (469) 929-7722 and we can often provide an estimate over the phone immediately."
     },
     {
       question: "Do you offer same-day service?",
@@ -52,7 +52,7 @@ export default function FAQPage() {
     },
     {
       question: "How do I book a service?",
-      answer: "Fill out our free quote form on our website, call us at (214) 817-9212, or text us. We'll confirm details and schedule your service at a convenient time."
+      answer: "Fill out our free quote form on our website, call us at (469) 929-7722, or text us. We'll confirm details and schedule your service at a convenient time."
     },
     {
       question: "Do you offer move-in or move-out cleaning?",
@@ -74,7 +74,7 @@ export default function FAQPage() {
         <div className="section-container">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">Frequently Asked Questions</h1>
           <p className="text-lg text-white">
-            Have questions? We've got answers. Can't find what you're looking for? Call us at (214) 817-9212.
+            Have questions? We've got answers. Can't find what you're looking for? Call us at (469) 929-7722.
           </p>
         </div>
       </section>
@@ -108,10 +108,10 @@ export default function FAQPage() {
               Our team is here to help. Call us anytime Monday through Sunday.
             </p>
             <a
-              href="tel:2148179212"
+              href="tel:+14699297722"
               className="inline-block bg-accent-500 text-primary-900 font-bold px-8 py-3 rounded-lg hover:bg-accent-400 transition"
             >
-              Call (214) 817-9212
+              Call (469) 929-7722
             </a>
           </div>
         </div>

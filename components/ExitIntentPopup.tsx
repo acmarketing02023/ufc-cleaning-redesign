@@ -1,12 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 export default function ExitIntentPopup() {
   const [isVisible, setIsVisible] = useState(false);
+  const pathname = usePathname();
+
+  // Only show exit-intent on the quote funnel page
+  const isOnQuotePage = pathname === "/quote";
 
   useEffect(() => {
+    if (!isOnQuotePage) return;
+
     const handleMouseLeave = (e: MouseEvent) => {
       // Only trigger if mouse leaves from top of window
       if (e.clientY <= 0) {
@@ -16,9 +23,9 @@ export default function ExitIntentPopup() {
 
     document.addEventListener("mouseleave", handleMouseLeave);
     return () => document.removeEventListener("mouseleave", handleMouseLeave);
-  }, []);
+  }, [isOnQuotePage]);
 
-  if (!isVisible) return null;
+  if (!isVisible || !isOnQuotePage) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -58,7 +65,7 @@ export default function ExitIntentPopup() {
         </div>
 
         <p className="text-white text-xs text-center mt-4">
-          Questions? Call (214) 817-9212
+          Questions? Call (469) 929-7722
         </p>
       </div>
     </div>

@@ -156,7 +156,7 @@ export default function ServicesPage() {
               <div>
                 <h3 className="font-bold text-lg mb-2">Contact Us</h3>
                 <p className="text-white">
-                  Call us at (214) 817-9212 or fill out our free quote form. Tell us about your project.
+                  Call us at (469) 929-7722 or fill out our free quote form. Tell us about your project.
                 </p>
               </div>
             </div>

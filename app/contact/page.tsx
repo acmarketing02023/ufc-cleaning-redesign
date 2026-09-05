@@ -22,10 +22,10 @@ export default function ContactPage() {
               <h3 className="font-bold text-lg mb-4 text-white">Call Us</h3>
               <div className="space-y-2 mb-4">
                 <a
-                  href="tel:2148179212"
+                  href="tel:+14699297722"
                   className="block text-accent-400 font-semibold hover:text-accent-300"
                 >
-                  (214) 817-9212
+                  (469) 929-7722
                 </a>
                 <a
                   href="tel:9409023030"
@@ -161,7 +161,7 @@ export default function ContactPage() {
               Request a Quote
             </Link>
             <a
-              href="tel:2148179212"
+              href="tel:+14699297722"
               className="btn bg-primary-700 text-white hover:bg-primary-800 btn-primary-lg"
             >
               Call Now

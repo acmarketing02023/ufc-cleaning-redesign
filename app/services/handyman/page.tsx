@@ -200,7 +200,7 @@ export default function HandymanPage() {
               <div>
                 <h3 className="font-bold text-lg mb-2 text-white">Tell Us About Your Project</h3>
                 <p className="text-white">
-                  Call (214) 817-9212 or fill out our quote form. Describe what you need done and when.
+                  Call (469) 929-7722 or fill out our quote form. Describe what you need done and when.
                 </p>
               </div>
             </div>
@@ -253,10 +253,10 @@ export default function HandymanPage() {
               Get Handyman Quote
             </Link>
             <a
-              href="tel:2148179212"
+              href="tel:+14699297722"
               className="btn bg-white text-primary-900 hover:bg-gray-200 font-bold btn-primary-lg"
             >
-              Call (214) 817-9212
+              Call (469) 929-7722
             </a>
           </div>
         </div>

@@ -94,8 +94,8 @@ export default function RealEstateAgentsPage() {
             <p className="text-white mb-4">
               We serve real estate agents and brokers throughout the Dallas-Fort Worth metroplex including Rowlett, Dallas, Plano, Arlington, Fort Worth, Frisco, McKinney, and all surrounding areas.
             </p>
-            <a href="tel:2148179212" className="text-accent-300 font-semibold hover:text-accent-200">
-              Call (214) 817-9212 for details
+            <a href="tel:+14699297722" className="text-accent-300 font-semibold hover:text-accent-200">
+              Call (469) 929-7722 for details
             </a>
           </div>
         </div>

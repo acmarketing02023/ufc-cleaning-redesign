@@ -159,10 +159,10 @@ export default function AboutPage() {
               Get Free Quote
             </Link>
             <a
-              href="tel:2148179212"
+              href="tel:+14699297722"
               className="btn btn-secondary btn-primary-lg"
             >
-              Call (214) 817-9212
+              Call (469) 929-7722
             </a>
           </div>
         </div>

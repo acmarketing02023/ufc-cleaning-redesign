@@ -1,14 +1,21 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 export default function IdleTimePopup() {
   const [isVisible, setIsVisible] = useState(false);
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const hasShownRef = useRef(false);
+  const pathname = usePathname();
+
+  // Only show idle popup on the quote funnel page
+  const isOnQuotePage = pathname === "/quote";
 
   useEffect(() => {
+    if (!isOnQuotePage) return;
+
     const resetIdleTimer = () => {
       if (idleTimerRef.current) {
         clearTimeout(idleTimerRef.current);
@@ -23,7 +30,7 @@ export default function IdleTimePopup() {
     };
 
     const events = ["mousedown", "keydown", "scroll", "touchstart"];
-    
+
     events.forEach((event) => {
       document.addEventListener(event, resetIdleTimer);
     });
@@ -38,9 +45,9 @@ export default function IdleTimePopup() {
         clearTimeout(idleTimerRef.current);
       }
     };
-  }, []);
+  }, [isOnQuotePage]);
 
-  if (!isVisible) return null;
+  if (!isVisible || !isOnQuotePage) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -75,11 +82,11 @@ export default function IdleTimePopup() {
             Get Your Quote
           </Link>
           <a
-            href="tel:2148179212"
+            href="tel:+14699297722"
             onClick={() => setIsVisible(false)}
             className="block w-full btn bg-primary-600 text-white hover:bg-primary-500 font-bold border border-accent-500 text-center"
           >
-            Call (214) 817-9212
+            Call (469) 929-7722
           </a>
         </div>
       </div>
