@@ -9,6 +9,7 @@ interface QuoteFormData {
   bathrooms: number;
   frequency: string;
   addOns: string[];
+  condition: string;
   timing: string;
   firstName: string;
   lastName: string;
@@ -19,32 +20,54 @@ interface QuoteFormData {
 }
 
 const serviceOptions = [
-  { id: "residential-cleaning", name: "Residential Cleaning", basePrice: 169 },
-  { id: "deep-cleaning", name: "Deep Cleaning", basePrice: 199 },
-  { id: "commercial-cleaning", name: "Commercial Cleaning", basePrice: 120 },
-  { id: "post-construction", name: "Post-Construction Cleanup", basePrice: 250 },
-  { id: "junk-removal", name: "Junk Removal", basePrice: 149 },
-  { id: "power-washing", name: "Power Washing", basePrice: 99 },
-  { id: "moving", name: "Moving Services", basePrice: 299 },
-  { id: "demolition", name: "Demolition Services", basePrice: 500 },
+  { id: "standard-clean", name: "Standard Clean" },
+  { id: "deep-clean", name: "Deep Clean" },
+  { id: "move-in-out", name: "Move-In/Move-Out Clean" },
 ];
 
+// Pricing table based on bedrooms and bathrooms
+const pricingTable: { [key: string]: { [key: string]: number } } = {
+  "1br-1ba": { "standard-clean": 169, "deep-clean": 299, "move-in-out": 339 },
+  "1br-2ba": { "standard-clean": 189, "deep-clean": 319, "move-in-out": 359 },
+  "2br-1ba": { "standard-clean": 209, "deep-clean": 339, "move-in-out": 379 },
+  "2br-2ba": { "standard-clean": 249, "deep-clean": 379, "move-in-out": 419 },
+  "2br-3ba": { "standard-clean": 279, "deep-clean": 419, "move-in-out": 459 },
+  "3br-1ba": { "standard-clean": 259, "deep-clean": 389, "move-in-out": 429 },
+  "3br-2ba": { "standard-clean": 299, "deep-clean": 439, "move-in-out": 479 },
+  "3br-2ba-lg": { "standard-clean": 349, "deep-clean": 499, "move-in-out": 539 },
+  "4br-2ba": { "standard-clean": 379, "deep-clean": 529, "move-in-out": 569 },
+  "4br-3ba": { "standard-clean": 429, "deep-clean": 579, "move-in-out": 619 },
+  "4br-4ba": { "standard-clean": 479, "deep-clean": 629, "move-in-out": 669 },
+  "5br-2ba": { "standard-clean": 519, "deep-clean": 669, "move-in-out": 709 },
+  "5br-3ba": { "standard-clean": 569, "deep-clean": 729, "move-in-out": 769 },
+  "5br-4ba": { "standard-clean": 629, "deep-clean": 799, "move-in-out": 849 },
+};
+
 const addOnOptions = [
-  { id: "interior-oven", name: "Interior Oven Cleaning", price: 100 },
-  { id: "window-cleaning", name: "Window Cleaning", price: 80 },
-  { id: "carpet-cleaning", name: "Carpet Cleaning", price: 150 },
-  { id: "upholstery", name: "Upholstery Cleaning", price: 120 },
-  { id: "grout-cleaning", name: "Grout Cleaning", price: 90 },
+  { id: "interior-oven", name: "Interior Oven", price: 40 },
+  { id: "interior-fridge", name: "Interior Refrigerator", price: 45 },
+  { id: "cabinets", name: "Inside Cabinets/Drawers", price: 50 },
+  { id: "windows", name: "Interior Windows", price: 5, unit: "per window" },
+  { id: "blinds", name: "Blinds", price: 5, unit: "per blind" },
+  { id: "baseboards", name: "Baseboards", price: 35 },
+  { id: "dishes", name: "Dishes", price: 25 },
+  { id: "organization", name: "Organization", price: 60, unit: "per hour" },
+  { id: "laundry", name: "Laundry Wash & Fold", price: 25, unit: "per load" },
+  { id: "pet-hair", name: "Pet Hair Fee", price: 40 },
+  { id: "garage", name: "Garage", price: 50 },
+  { id: "balcony", name: "Balcony/Patio", price: 35 },
+  { id: "mattress", name: "Mattress Cleaning", price: 40, unit: "per mattress" },
 ];
 
 export default function QuotePage() {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<QuoteFormData>({
     service: "",
-    bedrooms: 2,
+    bedrooms: 1,
     bathrooms: 1,
     frequency: "one-time",
     addOns: [],
+    condition: "average",
     timing: "flexible",
     firstName: "",
     lastName: "",
@@ -56,13 +79,43 @@ export default function QuotePage() {
 
   const [submitted, setSubmitted] = useState(false);
 
+  const getBedroomBathroomKey = (): string => {
+    const br = formData.bedrooms;
+    const ba = formData.bathrooms;
+
+    // Map to the pricing table keys
+    if (br === 1 && ba === 1) return "1br-1ba";
+    if (br === 1 && ba === 2) return "1br-2ba";
+    if (br === 2 && ba === 1) return "2br-1ba";
+    if (br === 2 && ba === 2) return "2br-2ba";
+    if (br === 2 && ba === 3) return "2br-3ba";
+    if (br === 3 && ba === 1) return "3br-1ba";
+    if (br === 3 && ba === 2) return "3br-2ba";
+    if (br === 3 && ba === 3) return "3br-2ba-lg"; // Use 3BR/2BA-large as approximation
+    if (br === 4 && ba === 2) return "4br-2ba";
+    if (br === 4 && ba === 3) return "4br-3ba";
+    if (br === 4 && ba === 4) return "4br-4ba";
+    if (br === 5 && ba === 2) return "5br-2ba";
+    if (br === 5 && ba === 3) return "5br-3ba";
+    if (br === 5 && ba === 4) return "5br-4ba";
+    // Fallback to closest match
+    return "2br-2ba";
+  };
+
   const calculatePrice = () => {
     if (!formData.service) return 0;
 
-    const service = serviceOptions.find((s) => s.id === formData.service);
-    if (!service) return 0;
+    // Get base price from pricing table
+    const key = getBedroomBathroomKey();
+    const servicePrices = pricingTable[key];
+    if (!servicePrices || !servicePrices[formData.service]) return 0;
 
-    let price = service.basePrice;
+    let price = servicePrices[formData.service];
+
+    // Add condition surcharge (heavy = 20-40%, we'll use 30%)
+    if (formData.condition === "heavy") {
+      price = Math.round(price * 1.3);
+    }
 
     // Add-ons
     const addOnPrices = formData.addOns.reduce((total, addOnId) => {
@@ -70,22 +123,18 @@ export default function QuotePage() {
       return total + (addOn?.price || 0);
     }, 0);
 
-    // For cleaning services, adjust by property size (bedrooms/bathrooms proxy)
-    if (
-      ["residential-cleaning", "deep-cleaning", "post-construction"].includes(
-        formData.service
-      )
-    ) {
-      const roomFactor = (formData.bedrooms + formData.bathrooms) * 10;
-      price += roomFactor;
+    let total = price + addOnPrices;
+
+    // Frequency discounts
+    if (formData.frequency === "weekly") {
+      total = Math.round(total * 0.8); // 20% off
+    } else if (formData.frequency === "bi-weekly") {
+      total = Math.round(total * 0.85); // 15% off
+    } else if (formData.frequency === "monthly") {
+      total = Math.round(total * 0.95); // 5% off
     }
 
-    // Frequency multiplier
-    if (formData.frequency === "recurring") {
-      price *= 0.8; // 20% discount for recurring
-    }
-
-    return Math.round(price + addOnPrices);
+    return total;
   };
 
   const totalPrice = calculatePrice();
@@ -330,21 +379,21 @@ export default function QuotePage() {
                     <label className="block text-white font-semibold mb-3">
                       How many bedrooms?
                     </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="10"
-                      value={formData.bedrooms}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          bedrooms: parseInt(e.target.value),
-                        })
-                      }
-                      className="w-full h-2 bg-primary-700 rounded-lg appearance-none cursor-pointer"
-                    />
-                    <div className="text-center text-accent-400 font-bold text-xl mt-2">
-                      {formData.bedrooms} Bedrooms
+                    <div className="grid grid-cols-6 gap-2">
+                      {[1, 2, 3, 4, 5, 6].map((num) => (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, bedrooms: num })}
+                          className={`py-2 px-3 rounded-lg font-bold transition ${
+                            formData.bedrooms === num
+                              ? "bg-accent-500 text-primary-900"
+                              : "bg-primary-700 text-white border-2 border-primary-600 hover:border-accent-500"
+                          }`}
+                        >
+                          {num}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
@@ -352,21 +401,21 @@ export default function QuotePage() {
                     <label className="block text-white font-semibold mb-3">
                       How many bathrooms?
                     </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="8"
-                      value={formData.bathrooms}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          bathrooms: parseInt(e.target.value),
-                        })
-                      }
-                      className="w-full h-2 bg-primary-700 rounded-lg appearance-none cursor-pointer"
-                    />
-                    <div className="text-center text-accent-400 font-bold text-xl mt-2">
-                      {formData.bathrooms} Bathrooms
+                    <div className="grid grid-cols-6 gap-2">
+                      {[1, 2, 3, 4, 5, 6].map((num) => (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, bathrooms: num })}
+                          className={`py-2 px-3 rounded-lg font-bold transition ${
+                            formData.bathrooms === num
+                              ? "bg-accent-500 text-primary-900"
+                              : "bg-primary-700 text-white border-2 border-primary-600 hover:border-accent-500"
+                          }`}
+                        >
+                          {num}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
@@ -382,11 +431,42 @@ export default function QuotePage() {
                       className="w-full px-4 py-3 border border-accent-500 rounded-lg bg-primary-700 text-white focus:outline-none focus:ring-2 focus:ring-accent-500"
                     >
                       <option value="one-time">One Time</option>
-                      <option value="weekly">Weekly</option>
-                      <option value="bi-weekly">Bi-Weekly</option>
-                      <option value="monthly">Monthly</option>
-                      <option value="recurring">Recurring</option>
+                      <option value="weekly">Weekly (20% off)</option>
+                      <option value="bi-weekly">Bi-Weekly (15% off)</option>
+                      <option value="monthly">Monthly (5% off)</option>
                     </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-white font-semibold mb-3">
+                      What's the condition of the home?
+                    </label>
+                    <div className="space-y-2">
+                      {[
+                        { id: "light", label: "Light - Well maintained, light dust, regular cleaning" },
+                        { id: "average", label: "Average - Normal lived-in, some dust, occasional buildup" },
+                        { id: "heavy", label: "Heavy - Heavy buildup, pet hair, stains, grease, clutter (+30%)" },
+                      ].map((condition) => (
+                        <label
+                          key={condition.id}
+                          className="flex items-center p-3 border-2 border-primary-600 rounded-lg cursor-pointer hover:bg-primary-700 transition"
+                        >
+                          <input
+                            type="radio"
+                            name="condition"
+                            value={condition.id}
+                            checked={formData.condition === condition.id}
+                            onChange={(e) =>
+                              setFormData({ ...formData, condition: e.target.value })
+                            }
+                            className="w-5 h-5 text-accent-500"
+                          />
+                          <span className="ml-3 text-white text-sm">
+                            {condition.label}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
