@@ -20,9 +20,17 @@ interface QuoteFormData {
 }
 
 const serviceOptions = [
-  { id: "standard-clean", name: "Standard Clean" },
-  { id: "deep-clean", name: "Deep Clean" },
-  { id: "move-in-out", name: "Move-In/Move-Out Clean" },
+  { id: "standard-clean", name: "Residential - Standard Clean", type: "residential" },
+  { id: "deep-clean", name: "Residential - Deep Clean", type: "residential" },
+  { id: "move-in-out", name: "Move-In/Move-Out Clean", type: "residential" },
+  { id: "vacation-rental", name: "Vacation Rental Cleaning", type: "residential" },
+  { id: "commercial-cleaning", name: "Commercial Cleaning", type: "commercial", basePrice: 300 },
+  { id: "post-construction", name: "Post-Construction Cleanup", type: "custom", basePrice: 450 },
+  { id: "junk-removal", name: "Junk Removal", type: "custom", basePrice: 350 },
+  { id: "power-washing", name: "Power Washing", type: "custom", basePrice: 250 },
+  { id: "handyman", name: "Handyman Services", type: "custom", basePrice: 80, unit: "per hour" },
+  { id: "moving", name: "Moving Services", type: "custom", basePrice: 450 },
+  { id: "demolition", name: "Demolition Services", type: "custom", basePrice: 600 },
 ];
 
 // Pricing table based on bedrooms and bathrooms
@@ -105,16 +113,25 @@ export default function QuotePage() {
   const calculatePrice = () => {
     if (!formData.service) return 0;
 
-    // Get base price from pricing table
-    const key = getBedroomBathroomKey();
-    const servicePrices = pricingTable[key];
-    if (!servicePrices || !servicePrices[formData.service]) return 0;
+    const service = serviceOptions.find((s) => s.id === formData.service);
+    if (!service) return 0;
 
-    let price = servicePrices[formData.service];
+    let price = 0;
 
-    // Add condition surcharge (heavy = 20-40%, we'll use 30%)
-    if (formData.condition === "heavy") {
-      price = Math.round(price * 1.3);
+    // Check if it's a residential service with pricing table
+    if (service.type === "residential") {
+      const key = getBedroomBathroomKey();
+      const servicePrices = pricingTable[key];
+      if (!servicePrices || !servicePrices[formData.service]) return 0;
+      price = servicePrices[formData.service];
+
+      // Add condition surcharge for residential (heavy = 30%)
+      if (formData.condition === "heavy") {
+        price = Math.round(price * 1.3);
+      }
+    } else {
+      // For other services, use base price
+      price = service.basePrice || 0;
     }
 
     // Add-ons
@@ -125,13 +142,15 @@ export default function QuotePage() {
 
     let total = price + addOnPrices;
 
-    // Frequency discounts
-    if (formData.frequency === "weekly") {
-      total = Math.round(total * 0.8); // 20% off
-    } else if (formData.frequency === "bi-weekly") {
-      total = Math.round(total * 0.85); // 15% off
-    } else if (formData.frequency === "monthly") {
-      total = Math.round(total * 0.95); // 5% off
+    // Frequency discounts (only for residential)
+    if (service.type === "residential") {
+      if (formData.frequency === "weekly") {
+        total = Math.round(total * 0.8); // 20% off
+      } else if (formData.frequency === "bi-weekly") {
+        total = Math.round(total * 0.85); // 15% off
+      } else if (formData.frequency === "monthly") {
+        total = Math.round(total * 0.95); // 5% off
+      }
     }
 
     return total;
@@ -145,9 +164,16 @@ export default function QuotePage() {
   };
 
   const handleServiceSelect = (serviceId: string) => {
+    const service = serviceOptions.find((s) => s.id === serviceId);
     setFormData({ ...formData, service: serviceId });
-    // Auto-advance to step 2
-    setTimeout(() => setStep(2), 300);
+    // For residential services, go to step 2. For others, skip to step 3 (add-ons) or 4 (timing)
+    setTimeout(() => {
+      if (service?.type === "residential") {
+        setStep(2);
+      } else {
+        setStep(3); // Skip property details for non-residential
+      }
+    }, 300);
   };
 
   const handleAddOnToggle = (addOnId: string) => {
