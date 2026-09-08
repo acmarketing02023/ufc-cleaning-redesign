@@ -102,7 +102,7 @@ export default function Home() {
       </section>
 
       {/* HERO SECTION */}
-      <section className="relative text-white pt-20 pb-24 md:py-32 overflow-hidden" style={{ backgroundImage: "linear-gradient(rgba(15, 23, 42, 0.75), rgba(15, 23, 42, 0.75)), url(/dallas-skyline.webp)", backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed" } as React.CSSProperties}>
+      <section className="relative text-white pt-20 pb-24 md:py-32 overflow-hidden" style={{ backgroundImage: "linear-gradient(rgba(15, 23, 42, 0.75), rgba(15, 23, 42, 0.75)), url(/dallas-skyline.webp)", backgroundSize: "cover", backgroundPosition: "center" } as React.CSSProperties}>
         {/* Background accent */}
         <div className="absolute inset-0 opacity-0">
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary-50 rounded-full blur-3xl"></div>
@@ -173,7 +173,7 @@ export default function Home() {
             </div>
 
             {/* Quick Quote Form */}
-            <div className="hidden md:block">
+            <div>
               <form className="space-y-4">
                 <h3 className="text-2xl font-bold text-white mb-6">Quick Quote</h3>
 
