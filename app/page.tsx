@@ -1,7 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import BeforeAfterSlider from "@/components/BeforeAfterSlider";
-import EmergencyBanner from "@/components/EmergencyBanner";
 
 export default function Home() {
   const services = [
@@ -163,6 +162,14 @@ export default function Home() {
                   Call Now: (469) 929-7722
                 </a>
               </div>
+
+              {/* Emergency Appointment Banner */}
+              <div className="mt-6 flex justify-center">
+                <div className="bg-red-600 text-white px-6 py-3 rounded-full inline-flex items-center gap-2 shadow-lg">
+                  <span className="text-lg">⏰</span>
+                  <p className="text-sm font-medium">Only a few appointments left this week in your area</p>
+                </div>
+              </div>
             </div>
 
             {/* Quick Quote Form */}
@@ -242,9 +249,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* EMERGENCY BANNER */}
-      <EmergencyBanner />
 
       {/* PROMINENT QUOTE SECTION */}
       <section className="bg-gradient-to-r from-accent-600 to-accent-500 py-16 md:py-24">
