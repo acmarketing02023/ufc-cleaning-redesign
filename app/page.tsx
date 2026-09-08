@@ -93,7 +93,7 @@ export default function Home() {
   return (
     <div>
       {/* <2 WEEKS BANNER */}
-      <section className="bg-gradient-to-r from-accent-600 to-accent-500 text-primary-900 py-4 text-center">
+      <section className="hidden md:block bg-gradient-to-r from-accent-600 to-accent-500 text-primary-900 py-4 text-center">
         <div className="max-w-7xl mx-auto px-4">
           <p className="text-lg md:text-xl font-bold">
             ⚡ Commercial Demolition & Junk Removal Completed in Under 2 Weeks
@@ -434,7 +434,6 @@ export default function Home() {
             <div>
               <div className="mb-4 text-center">
                 <h3 className="text-xl font-bold text-white mb-2">Project 1</h3>
-                <p className="text-white text-sm">Residential Deep Clean</p>
               </div>
               <BeforeAfterSlider
                 before="/projects/project1-before.jpg"
@@ -445,7 +444,6 @@ export default function Home() {
             <div>
               <div className="mb-4 text-center">
                 <h3 className="text-xl font-bold text-white mb-2">Project 2</h3>
-                <p className="text-white text-sm">Commercial Cleaning</p>
               </div>
               <BeforeAfterSlider
                 before="/projects/project2-before.jpg"
@@ -456,7 +454,6 @@ export default function Home() {
             <div>
               <div className="mb-4 text-center">
                 <h3 className="text-xl font-bold text-white mb-2">Project 3</h3>
-                <p className="text-white text-sm">Post-Construction Cleanup</p>
               </div>
               <BeforeAfterSlider
                 before="/projects/project3-before.jpg"

@@ -172,7 +172,7 @@ export default function Header() {
           <div className="flex items-center gap-4">
             <Link
               href="/quote"
-              className="btn btn-primary text-sm md:text-base"
+              className="hidden md:inline-block btn btn-primary text-sm md:text-base"
             >
               Get Free Quote
             </Link>
