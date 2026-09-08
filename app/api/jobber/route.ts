@@ -3,7 +3,18 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { apiKey, data, formData, totalPrice } = body;
+    const { data, formData, totalPrice } = body;
+
+    // Get API key from environment
+    const apiKey = process.env.JOBBER_API_KEY;
+
+    if (!apiKey) {
+      console.error('Jobber API key not configured');
+      return NextResponse.json(
+        { success: false, error: 'Jobber integration not configured' },
+        { status: 500 }
+      );
+    }
 
     // Create client in Jobber
     const clientResponse = await fetch('https://api.getjobber.com/api/graphql', {
@@ -21,9 +32,8 @@ export async function POST(request: NextRequest) {
                 name
                 email
                 phone
-                address
               }
-              errors {
+              userErrors {
                 field
                 message
               }
@@ -35,7 +45,6 @@ export async function POST(request: NextRequest) {
             name: data.client.name,
             email: data.client.email,
             phone: data.client.phone,
-            address: data.client.address,
           },
         },
       }),
@@ -43,9 +52,13 @@ export async function POST(request: NextRequest) {
 
     const clientData = await clientResponse.json();
 
-    if (clientData.errors || clientData.data?.clientCreate?.errors?.length > 0) {
-      console.error('Jobber client creation error:', clientData);
-      // Client might already exist, continue anyway
+    if (clientData.errors) {
+      console.error('Jobber API error:', clientData.errors);
+      return NextResponse.json({ success: false, error: clientData.errors }, { status: 400 });
+    }
+
+    if (clientData.data?.clientCreate?.userErrors?.length > 0) {
+      console.error('Jobber client creation error:', clientData.data.clientCreate.userErrors);
     }
 
     const clientId = clientData.data?.clientCreate?.client?.id;
@@ -65,9 +78,8 @@ export async function POST(request: NextRequest) {
                 request {
                   id
                   title
-                  description
                 }
-                errors {
+                userErrors {
                   field
                   message
                 }
@@ -77,21 +89,8 @@ export async function POST(request: NextRequest) {
           variables: {
             input: {
               clientId: clientId,
-              title: `Quote from ${formData.firstName} ${formData.lastName}`,
-              description: `
-Service: ${formData.service}
-Estimated Price: $${totalPrice}
-Bedrooms: ${formData.bedrooms}
-Bathrooms: ${formData.bathrooms}
-Condition: ${formData.condition}
-Frequency: ${formData.frequency}
-Timeline: ${formData.timing}
-Add-ons: ${formData.addOns.length > 0 ? formData.addOns.join(', ') : 'None'}
-Notes: ${formData.notes || 'None'}
-Phone: ${formData.phone}
-Email: ${formData.email}
-Address: ${formData.address}
-              `,
+              title: `Quote - ${formData.firstName} ${formData.lastName}`,
+              description: `Service: ${formData.service}\nEstimated Price: $${totalPrice}\nDetails: ${formData.notes || 'No additional notes'}`,
             },
           },
         }),
@@ -99,8 +98,12 @@ Address: ${formData.address}
 
       const requestData = await requestResponse.json();
 
-      if (requestData.errors || requestData.data?.requestCreate?.errors?.length > 0) {
-        console.error('Jobber request creation error:', requestData);
+      if (requestData.errors) {
+        console.error('Jobber request error:', requestData.errors);
+      }
+
+      if (requestData.data?.requestCreate?.userErrors?.length > 0) {
+        console.error('Jobber request creation error:', requestData.data.requestCreate.userErrors);
       }
     }
 

@@ -213,7 +213,6 @@ export default function QuotePage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          apiKey: 'sk-ant-api03-pB7raV5JD3596gwdaM5jGGbyBYVSnUthnq_h2X1PKjUDQXUXEp2W0pRjk_fDo52jy-aUYE0uE3aYvf44DitEQ-wBEB3gAA',
           data: jobberData,
           formData: formData,
           totalPrice: totalPrice,
