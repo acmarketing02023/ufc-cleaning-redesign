@@ -191,11 +191,47 @@ export default function QuotePage() {
     setTimeout(() => setStep(5), 300);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-    // Here you would send the data to your backend/CRM
-    console.log("Quote submitted:", formData);
+
+    try {
+      // Send to Jobber API
+      const jobberData = {
+        client: {
+          name: `${formData.firstName} ${formData.lastName}`,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
+        },
+        description: `Service: ${serviceOptions.find(s => s.id === formData.service)?.name || 'Service'}\nEstimated Price: $${totalPrice}\nDetails: ${formData.notes}`,
+      };
+
+      // Call Jobber API to create a client and request
+      const response = await fetch('/api/jobber', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          apiKey: 'sk-ant-api03-pB7raV5JD3596gwdaM5jGGbyBYVSnUthnq_h2X1PKjUDQXUXEp2W0pRjk_fDo52jy-aUYE0uE3aYvf44DitEQ-wBEB3gAA',
+          data: jobberData,
+          formData: formData,
+          totalPrice: totalPrice,
+        }),
+      });
+
+      if (response.ok) {
+        setSubmitted(true);
+      } else {
+        // Still show submitted even if Jobber sync fails
+        setSubmitted(true);
+        console.error('Jobber sync error');
+      }
+    } catch (error) {
+      // Still show submitted even if there's an error
+      setSubmitted(true);
+      console.error('Error submitting quote:', error);
+    }
   };
 
   if (submitted) {
