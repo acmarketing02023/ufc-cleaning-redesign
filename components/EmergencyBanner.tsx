@@ -1,13 +1,4 @@
-"use client";
-
-import { usePathname } from "next/navigation";
-
 export default function EmergencyBanner() {
-  const pathname = usePathname();
-
-  // Only show on homepage
-  if (pathname !== "/") return null;
-
   return (
     <div className="bg-red-600 text-white py-2 px-4 sm:py-3 sm:px-6 z-30">
       <div className="max-w-7xl mx-auto">

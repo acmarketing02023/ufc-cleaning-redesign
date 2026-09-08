@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import BeforeAfterSlider from "@/components/BeforeAfterSlider";
+import EmergencyBanner from "@/components/EmergencyBanner";
 
 export default function Home() {
   const services = [
@@ -241,6 +242,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* EMERGENCY BANNER */}
+      <EmergencyBanner />
 
       {/* PROMINENT QUOTE SECTION */}
       <section className="bg-gradient-to-r from-accent-600 to-accent-500 py-16 md:py-24">

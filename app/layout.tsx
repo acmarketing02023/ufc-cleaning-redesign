@@ -3,7 +3,6 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
-import EmergencyBanner from "@/components/EmergencyBanner";
 import ExitIntentPopup from "@/components/ExitIntentPopup";
 import IdleTimePopup from "@/components/IdleTimePopup";
 import LiveChat from "@/components/LiveChat";
@@ -40,7 +39,6 @@ export default function RootLayout({
       </head>
       <body suppressHydrationWarning>
         <Header />
-        <EmergencyBanner />
         <main>
           <PageTransition>{children}</PageTransition>
         </main>
