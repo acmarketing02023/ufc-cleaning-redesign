@@ -142,8 +142,8 @@ export default function ResidentialCleaningPage() {
             <p className="text-white mb-4">
               We serve all of Dallas-Fort Worth including Rowlett, Dallas, Plano, Garland, Wylie, Frisco, Arlington, and more. Same-day service available with a morning call.
             </p>
-            <a href="tel:+14699297722" className="text-accent-300 font-semibold hover:text-accent-200">
-              Call (469) 929-7722 for details
+            <a href="tel:+12142182921" className="text-accent-300 font-semibold hover:text-accent-200">
+              Call (214) 218-2921 for details
             </a>
           </div>
         </div>

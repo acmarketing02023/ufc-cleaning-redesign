@@ -365,10 +365,10 @@ export default function VacationRentalCleaningPage() {
               Schedule Turnover Cleaning
             </Link>
             <a
-              href="tel:+14699297722"
+              href="tel:+12142182921"
               className="btn bg-white text-primary-900 hover:bg-gray-200 font-bold btn-primary-lg"
             >
-              Call (469) 929-7722
+              Call (214) 218-2921
             </a>
           </div>
         </div>

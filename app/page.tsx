@@ -156,10 +156,10 @@ export default function Home() {
                   Get a Free Quote
                 </Link>
                 <a
-                  href="tel:+14699297722"
+                  href="tel:+12142182921"
                   className="btn bg-accent-500 text-primary-900 hover:bg-accent-400 btn-primary-lg text-center font-bold"
                 >
-                  Call Now: (469) 929-7722
+                  Call Now: (214) 218-2921
                 </a>
               </div>
 
@@ -696,10 +696,10 @@ export default function Home() {
               Get Free Quote
             </Link>
             <a
-              href="tel:+14699297722"
+              href="tel:+12142182921"
               className="btn bg-primary-700 text-white hover:bg-primary-800 btn-primary-lg"
             >
-              Call (469) 929-7722
+              Call (214) 218-2921
             </a>
           </div>
 

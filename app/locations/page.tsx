@@ -190,7 +190,7 @@ export default function LocationsPage() {
             <div className="bg-primary-50 rounded-lg p-6 border border-accent-500">
               <h3 className="font-bold text-lg mb-2 text-white">Special Requests</h3>
               <p className="text-white">
-                Service available beyond our main coverage area. Call us at (469) 929-7722 or (940) 902-3030 to discuss your specific location.
+                Service available beyond our main coverage area. Call us at (214) 218-2921 or (940) 902-3030 to discuss your specific location.
               </p>
             </div>
           </div>
@@ -263,7 +263,7 @@ export default function LocationsPage() {
           </Link>
 
           <p className="text-sm text-white mt-6">
-            Or call <a href="tel:+14699297722" className="font-semibold">(469) 929-7722</a>
+            Or call <a href="tel:+12142182921" className="font-semibold">(214) 218-2921</a>
           </p>
         </div>
       </section>

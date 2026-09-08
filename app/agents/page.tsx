@@ -30,10 +30,10 @@ export default function AgentsPage() {
               Get a Free Quote
             </Link>
             <a
-              href="tel:+14699297722"
+              href="tel:+12142182921"
               className="btn bg-primary-700 text-white hover:bg-primary-800 btn-primary-lg flex items-center justify-center gap-2"
             >
-              <span>📞</span> (469) 929-7722
+              <span>📞</span> (214) 218-2921
             </a>
           </div>
         </div>
@@ -228,7 +228,7 @@ export default function AgentsPage() {
               Get a Free Quote
             </Link>
             <a
-              href="tel:+14699297722"
+              href="tel:+12142182921"
               className="btn bg-accent-700 text-white hover:bg-accent-800 btn-primary-lg flex items-center justify-center gap-2"
             >
               <span>📍</span> See Service Areas

@@ -65,7 +65,7 @@ export default function ExitIntentPopup() {
         </div>
 
         <p className="text-white text-xs text-center mt-4">
-          Questions? Call (469) 929-7722
+          Questions? Call (214) 218-2921
         </p>
       </div>
     </div>

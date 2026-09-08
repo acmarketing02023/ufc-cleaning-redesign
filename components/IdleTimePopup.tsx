@@ -82,11 +82,11 @@ export default function IdleTimePopup() {
             Get Your Quote
           </Link>
           <a
-            href="tel:+14699297722"
+            href="tel:+12142182921"
             onClick={() => setIsVisible(false)}
             className="block w-full btn bg-primary-600 text-white hover:bg-primary-500 font-bold border border-accent-500 text-center"
           >
-            Call (469) 929-7722
+            Call (214) 218-2921
           </a>
         </div>
       </div>

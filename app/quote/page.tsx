@@ -637,7 +637,7 @@ export default function QuotePage() {
                         setFormData({ ...formData, phone: e.target.value })
                       }
                       className="w-full px-4 py-3 border border-gray-400 rounded-lg bg-white text-primary-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent-500"
-                      placeholder="(469) 929-7722"
+                      placeholder="(214) 218-2921"
                     />
                   </div>
 

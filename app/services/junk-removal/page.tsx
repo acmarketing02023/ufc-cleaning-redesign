@@ -184,7 +184,7 @@ export default function JunkRemovalPage() {
           </Link>
 
           <p className="text-sm text-white mt-6">
-            Or call <a href="tel:+14699297722" className="font-semibold">(469) 929-7722</a>
+            Or call <a href="tel:+12142182921" className="font-semibold">(214) 218-2921</a>
           </p>
         </div>
       </section>

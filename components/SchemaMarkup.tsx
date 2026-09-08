@@ -6,7 +6,7 @@ export default function SchemaMarkup() {
     "image": "https://ufcleaning.com/ufc-logo.png",
     "description": "Complete property services including residential cleaning, commercial cleaning, junk removal, power washing, demolition, and more. Serving all of Dallas-Fort Worth.",
     "url": "https://ufcleaning.com",
-    "telephone": "(469) 929-7722",
+    "telephone": "(214) 218-2921",
     "address": {
       "@type": "PostalAddress",
       "streetAddress": "8001 Munich Dr",

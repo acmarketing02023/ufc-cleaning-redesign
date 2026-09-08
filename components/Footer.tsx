@@ -116,6 +116,10 @@ export default function Footer() {
             <h4 className="font-semibold mb-4">Contact</h4>
             <div className="space-y-3 text-sm text-white">
               <div>
+                <p className="font-semibold text-white mb-1">Phone</p>
+                <a href="tel:+12142182921" className="hover:text-white transition">(214) 218-2921</a>
+              </div>
+              <div>
                 <p className="font-semibold text-white mb-1">Email</p>
                 <a href="mailto:david@ufc-cleaning.com" className="hover:text-white transition">
                   david@ufc-cleaning.com
