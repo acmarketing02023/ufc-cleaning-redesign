@@ -10,66 +10,20 @@ export async function GET() {
   try {
     const accessToken = await getValidAccessToken();
 
-    const introspectionQuery = `
-      query {
-        mutationErrorType: __type(name: "MutationError") {
-          name
-          kind
-          fields {
-            name
-            type {
-              kind
-              name
-              ofType {
-                kind
-                name
-              }
-            }
+    // Try to find the error type by attempting a mutation that will fail
+    const testMutation = `
+      mutation {
+        clientCreate(input: {
+          firstName: "Test"
+        }) {
+          client {
+            id
           }
-        }
-        userErrorType: __type(name: "UserError") {
-          name
-          kind
-          fields {
-            name
-            type {
-              kind
-              name
-              ofType {
-                kind
-                name
-              }
-            }
-          }
-        }
-        clientErrorType: __type(name: "ClientError") {
-          name
-          kind
-          fields {
-            name
-            type {
-              kind
-              name
-              ofType {
-                kind
-                name
-              }
-            }
-          }
-        }
-        validationErrorType: __type(name: "ValidationError") {
-          name
-          kind
-          fields {
-            name
-            type {
-              kind
-              name
-              ofType {
-                kind
-                name
-              }
-            }
+          userErrors {
+            message
+            field
+            code
+            type
           }
         }
       }
@@ -82,22 +36,16 @@ export async function GET() {
         'Authorization': `Bearer ${accessToken}`,
         'X-JOBBER-GRAPHQL-VERSION': '2025-04-16',
       },
-      body: JSON.stringify({ query: introspectionQuery }),
+      body: JSON.stringify({ query: testMutation }),
     });
 
     const result = await response.json();
 
-    if (result.errors) {
-      return NextResponse.json(
-        { error: 'GraphQL errors', details: result.errors },
-        { status: 500 }
-      );
-    }
-
     return NextResponse.json(
       {
         success: true,
-        mutationErrorType: result.data?.__type,
+        testMutationResponse: result,
+        note: 'Check the structure of userErrors in the response',
       },
       { status: 200 }
     );
