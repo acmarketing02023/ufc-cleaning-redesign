@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getValidAccessToken } from '@/lib/jobberTokenManager';
 import { makeJobberGraphQLRequest } from '@/lib/jobberGraphQL';
+import {
+  persistLead,
+  markLeadSynced,
+  markLeadSyncFailed,
+  PersistedLead,
+} from '@/lib/leadPersistence';
+import { findExistingClient, cacheNewClient } from '@/lib/clientLookup';
 
 interface QuoteFormData {
   service: string;
@@ -19,28 +26,6 @@ interface QuoteFormData {
 }
 
 /**
- * Result from client lookup - distinguishes between "not found" and "error"
- */
-type ClientLookupResult =
-  | { status: 'found'; clientId: string; properties: any[] }
-  | { status: 'not_found' }
-  | { status: 'error'; error: string };
-
-/**
- * Normalize phone number to digits only for comparison
- */
-function normalizePhone(phone: string): string {
-  return phone.replace(/\D/g, '');
-}
-
-/**
- * Normalize email for comparison
- */
-function normalizeEmail(email: string): string {
-  return email.toLowerCase().trim();
-}
-
-/**
  * Normalize address for comparison: lowercase, remove punctuation, collapse spaces
  */
 function normalizeAddress(address: string): string {
@@ -49,113 +34,6 @@ function normalizeAddress(address: string): string {
     .replace(/[,]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-}
-
-/**
- * Query clients with pagination to find existing client by email/phone
- * Returns error status if GraphQL query itself fails (not just if client not found)
- */
-async function findExistingClient(
-  accessToken: string,
-  email: string,
-  phone: string
-): Promise<ClientLookupResult> {
-  const normalizedEmail = normalizeEmail(email);
-  const normalizedPhone = normalizePhone(phone);
-
-  let cursor = null;
-  let hasMore = true;
-
-  while (hasMore) {
-    const query = `
-      query GetClientsPage($first: Int!, $after: String) {
-        clients(first: $first, after: $after, filter: { isArchived: false }) {
-          pageInfo {
-            hasNextPage
-            endCursor
-          }
-          edges {
-            node {
-              id
-              firstName
-              lastName
-              isCompany
-              emails {
-                address
-                primary
-              }
-              phones {
-                number
-                primary
-              }
-              clientProperties(first: 100) {
-                nodes {
-                  id
-                  name
-                  address {
-                    street1
-                    street2
-                    city
-                    province
-                    postalCode
-                    country
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    `;
-
-    const result = await makeJobberGraphQLRequest(accessToken, {
-      query,
-      variables: { first: 100, after: cursor },
-    });
-
-    // CRITICAL: If query itself fails, return error status (do not silently treat as "not found")
-    if (!result.success) {
-      const errorMsg = result.error || 'Unknown error';
-      console.error('Client lookup failed:', errorMsg);
-      return { status: 'error', error: errorMsg };
-    }
-
-    const clients = result.data?.clients?.edges?.map((e: any) => e.node) || [];
-
-    // Check each client for email/phone match
-    for (const client of clients) {
-      const clientEmails = (client.emails || []).map((e: any) =>
-        normalizeEmail(e.address)
-      );
-      const clientPhones = (client.phones || []).map((p: any) =>
-        normalizePhone(p.number)
-      );
-
-      // Email match (primary)
-      if (normalizedEmail && clientEmails.includes(normalizedEmail)) {
-        return {
-          status: 'found',
-          clientId: client.id,
-          properties: client.clientProperties?.nodes || [],
-        };
-      }
-
-      // Phone match (fallback)
-      if (normalizedPhone && clientPhones.includes(normalizedPhone)) {
-        return {
-          status: 'found',
-          clientId: client.id,
-          properties: client.clientProperties?.nodes || [],
-        };
-      }
-    }
-
-    hasMore = result.data?.clients?.pageInfo?.hasNextPage;
-    cursor = result.data?.clients?.pageInfo?.endCursor;
-  }
-
-  // After all pages: no client found
-  return { status: 'not_found' };
 }
 
 /**
@@ -360,7 +238,6 @@ function buildRequestInput(
   formData: QuoteFormData,
   totalPrice: number
 ) {
-  // Map form data to readable labels
   const frequencyMap: { [key: string]: string } = {
     'one-time': 'One-time',
     weekly: 'Weekly',
@@ -494,6 +371,8 @@ async function createRequest(
  * Main POST handler for lead creation
  */
 export async function POST(request: NextRequest) {
+  let submissionId: string | null = null;
+
   try {
     const body = await request.json();
     const { formData, totalPrice } = body as {
@@ -515,40 +394,89 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get valid access token
+    // CRITICAL: Step 1 - Persist the lead immediately before any Jobber operations
+    // This ensures no data loss if Jobber becomes unavailable
+    console.log('Step 1: Persisting lead submission');
+    try {
+      const persistedLead: Omit<PersistedLead, 'submissionId'> = {
+        timestamp: new Date().toISOString(),
+        syncStatus: 'pending',
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        service: formData.service,
+        bedrooms: formData.bedrooms,
+        bathrooms: formData.bathrooms,
+        frequency: formData.frequency,
+        addOns: formData.addOns,
+        condition: formData.condition,
+        timing: formData.timing,
+        notes: formData.notes,
+        estimatedPrice: totalPrice,
+      };
+
+      submissionId = await persistLead(persistedLead);
+      console.log(`Lead persisted with ID: ${submissionId}`);
+    } catch (error) {
+      console.error('Critical: Failed to persist lead:', String(error));
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Failed to store lead submission',
+          details: String(error),
+        },
+        { status: 500 }
+      );
+    }
+
+    // Step 2: Get valid Jobber access token
+    console.log('Step 2: Retrieving Jobber access token');
     let accessToken: string;
     try {
       accessToken = await getValidAccessToken();
     } catch (error) {
       console.error('Failed to get Jobber access token:', error);
+      if (submissionId) {
+        await markLeadSyncFailed(
+          submissionId,
+          'Jobber not authorized'
+        ).catch((e) => console.error('Failed to mark sync failed:', e));
+      }
       return NextResponse.json(
         {
           success: false,
           error: 'Jobber not authorized',
-          message: 'Please authorize Jobber first',
+          submissionId: submissionId,
         },
         { status: 401 }
       );
     }
 
-    // Step 1: Try to find existing client by email/phone
-    console.log(
-      `Searching for existing client: ${formData.email} / ${formData.phone}`
-    );
+    // Step 3: Find or create Jobber client (with exact-match duplicate prevention)
+    console.log('Step 3: Looking up existing client');
     const clientLookup = await findExistingClient(
       accessToken,
       formData.email,
       formData.phone
     );
 
-    // CRITICAL: If lookup itself failed, return error and STOP
+    // If lookup itself failed, return error and preserve lead
     if (clientLookup.status === 'error') {
-      console.error('Client lookup failed with error:', clientLookup.error);
+      console.error('Client lookup failed:', clientLookup.error);
+      if (submissionId) {
+        await markLeadSyncFailed(
+          submissionId,
+          `Client lookup failed: ${clientLookup.error}`
+        ).catch((e) => console.error('Failed to mark sync failed:', e));
+      }
       return NextResponse.json(
         {
           success: false,
           error: 'Failed to query existing clients',
           details: clientLookup.error,
+          submissionId: submissionId,
         },
         { status: 500 }
       );
@@ -561,12 +489,14 @@ export async function POST(request: NextRequest) {
       console.log(`Found existing client: ${clientLookup.clientId}`);
       clientId = clientLookup.clientId;
 
-      // Step 2: Check if address matches existing property
-      propertyId = findMatchingProperty(formData.address, clientLookup.properties);
+      // Check if address matches existing property
+      propertyId = findMatchingProperty(
+        formData.address,
+        clientLookup.properties
+      );
 
       if (!propertyId) {
-        console.log('Address does not match existing properties, creating new property');
-        // Step 3: Create new property for existing client
+        console.log('Creating new property for existing client');
         propertyId = await createProperty(
           accessToken,
           clientId,
@@ -574,10 +504,17 @@ export async function POST(request: NextRequest) {
         );
 
         if (!propertyId) {
+          if (submissionId) {
+            await markLeadSyncFailed(
+              submissionId,
+              'Failed to create property'
+            ).catch((e) => console.error('Failed to mark sync failed:', e));
+          }
           return NextResponse.json(
             {
               success: false,
               error: 'Failed to create property for existing client',
+              submissionId: submissionId,
             },
             { status: 500 }
           );
@@ -588,8 +525,7 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // clientLookup.status === 'not_found'
-      console.log('No existing client found, creating new client with property');
-      // Step 4: Create new client with property
+      console.log('Creating new client with property');
       const newClientResult = await createClient(
         accessToken,
         formData.firstName,
@@ -600,8 +536,18 @@ export async function POST(request: NextRequest) {
       );
 
       if (!newClientResult) {
+        if (submissionId) {
+          await markLeadSyncFailed(
+            submissionId,
+            'Failed to create new client'
+          ).catch((e) => console.error('Failed to mark sync failed:', e));
+        }
         return NextResponse.json(
-          { success: false, error: 'Failed to create new client' },
+          {
+            success: false,
+            error: 'Failed to create new client',
+            submissionId: submissionId,
+          },
           { status: 500 }
         );
       }
@@ -609,9 +555,15 @@ export async function POST(request: NextRequest) {
       clientId = newClientResult.clientId;
       propertyId = newClientResult.propertyId;
       console.log(`Created new client: ${clientId}, property: ${propertyId}`);
+
+      // Cache the new client for future lookups
+      await cacheNewClient(formData.email, formData.phone, clientId).catch(
+        (e) => console.error('Failed to cache new client:', e)
+      );
     }
 
-    // Step 5: Create request with FormInput data
+    // Step 4: Create Jobber Request
+    console.log('Step 4: Creating Jobber Request');
     const requestInput = buildRequestInput(
       clientId,
       propertyId,
@@ -622,9 +574,27 @@ export async function POST(request: NextRequest) {
     const requestId = await createRequest(accessToken, requestInput);
 
     if (!requestId) {
+      if (submissionId) {
+        await markLeadSyncFailed(
+          submissionId,
+          'Failed to create request in Jobber'
+        ).catch((e) => console.error('Failed to mark sync failed:', e));
+      }
       return NextResponse.json(
-        { success: false, error: 'Failed to create request in Jobber' },
+        {
+          success: false,
+          error: 'Failed to create request in Jobber',
+          submissionId: submissionId,
+        },
         { status: 500 }
+      );
+    }
+
+    // Step 5: Mark lead as successfully synced
+    console.log('Step 5: Marking lead as synced');
+    if (submissionId) {
+      await markLeadSynced(submissionId, clientId, requestId, propertyId).catch(
+        (e) => console.error('Failed to mark sync successful:', e)
       );
     }
 
@@ -639,16 +609,27 @@ export async function POST(request: NextRequest) {
         requestId,
         clientId,
         propertyId,
+        submissionId: submissionId,
       },
       { status: 200 }
     );
   } catch (error) {
-    console.error('Error processing quote submission:', String(error));
+    console.error('Unexpected error processing quote submission:', String(error));
+
+    // Mark lead as failed on unexpected error
+    if (submissionId) {
+      await markLeadSyncFailed(
+        submissionId,
+        `Unexpected error: ${String(error)}`
+      ).catch((e) => console.error('Failed to mark sync failed:', e));
+    }
+
     return NextResponse.json(
       {
         success: false,
         error: 'Failed to process quote submission',
         details: String(error),
+        submissionId: submissionId,
       },
       { status: 500 }
     );

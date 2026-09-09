@@ -61,18 +61,31 @@ export async function kvGetParsed<T>(key: string): Promise<T | null> {
 
 /**
  * Safe set that stores as JSON string (works with auto-deserializing KV clients)
+ * @param key - KV key
+ * @param value - Value to store
+ * @param ttlSeconds - Optional TTL in seconds
  */
-export async function kvSetSerialized<T>(key: string, value: T): Promise<void> {
+export async function kvSetSerialized<T>(
+  key: string,
+  value: T,
+  ttlSeconds?: number
+): Promise<void> {
   try {
     // Always store as JSON string
     // If KV auto-deserializes on retrieval, kvGetParsed will handle it
     const jsonString = JSON.stringify(value);
 
-    await kv.set(key, jsonString, {});
+    const options: any = {};
+    if (ttlSeconds) {
+      options.ex = ttlSeconds; // ex = expire in seconds
+    }
+
+    await kv.set(key, jsonString, options);
 
     console.log('kvSetSerialized: Stored successfully', {
       key,
       jsonLength: jsonString.length,
+      ttl: ttlSeconds,
     });
   } catch (error) {
     console.error('kvSetSerialized: Failed to store in KV', {
