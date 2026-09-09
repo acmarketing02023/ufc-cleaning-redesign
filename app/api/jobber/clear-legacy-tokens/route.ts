@@ -9,6 +9,8 @@ import { kv } from '@vercel/kv';
  *
  * Should only be called once before fresh OAuth authorization.
  * Can be deleted after successful token refresh cycle.
+ *
+ * Deployed: 2026-09-08 (force redeploy)
  */
 export async function GET() {
   try {
