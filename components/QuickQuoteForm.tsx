@@ -94,6 +94,16 @@ export default function QuickQuoteForm() {
 
       if (result.success) {
         setSubmitSuccess(true);
+
+        // Fire Google Ads conversion event
+        if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+          window.gtag('event', 'conversion', {
+            'send_to': 'AW-18428852483/d_WhCNe0q_IcEIPyx9NE',
+            'value': 1.0,
+            'currency': 'USD'
+          });
+        }
+
         // Reset form
         setFormData({
           fullName: "",

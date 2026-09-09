@@ -220,17 +220,27 @@ export default function QuotePage() {
         }),
       });
 
-      if (response.ok) {
+      const result = await response.json();
+
+      if (result.success) {
+        // Fire Google Ads conversion event
+        if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+          window.gtag('event', 'conversion', {
+            'send_to': 'AW-18428852483/d_WhCNe0q_IcEIPyx9NE',
+            'value': 1.0,
+            'currency': 'USD'
+          });
+        }
         setSubmitted(true);
       } else {
-        // Still show submitted even if Jobber sync fails
-        setSubmitted(true);
-        console.error('Jobber sync error');
+        console.error('Jobber sync error:', result.error);
+        // Don't show submitted if Jobber fails
+        setSubmitted(false);
       }
     } catch (error) {
-      // Still show submitted even if there's an error
-      setSubmitted(true);
       console.error('Error submitting quote:', error);
+      // Don't show submitted on error
+      setSubmitted(false);
     }
   };
 
