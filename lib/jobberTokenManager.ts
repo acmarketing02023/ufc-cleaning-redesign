@@ -210,7 +210,8 @@ async function storeJobberCredentials(credentials: JobberCredentials): Promise<v
     // Store persistently in KV without TTL expiration
     // Atomically overwrites previous tokens (implements refresh token rotation)
     // NO TTL SET - tokens persist until explicit disconnect or Jobber invalidation
-    await kv.set('jobber:tokens', JSON.stringify(encryptedCredentials));
+    // Explicit empty options object ensures no automatic expiration
+    await kv.set('jobber:tokens', JSON.stringify(encryptedCredentials), {});
 
     console.log('Jobber credentials stored/updated persistently in KV', {
       accessTokenExpiresAt: new Date(credentials.expires_at).toISOString(),

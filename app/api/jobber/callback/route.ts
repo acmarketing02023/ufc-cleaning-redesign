@@ -234,7 +234,8 @@ async function storeJobberTokens(tokens: JobberTokens): Promise<void> {
       ttlSet: false,
     });
 
-    const result = await kv.set('jobber:tokens', jsonString);
+    // Call kv.set with explicit options (empty object = no TTL/expiration)
+    const result = await kv.set('jobber:tokens', jsonString, {});
 
     console.log('Jobber tokens stored persistently in KV', {
       kvSetResult: result,
