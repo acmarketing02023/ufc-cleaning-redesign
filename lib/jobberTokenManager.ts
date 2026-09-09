@@ -22,6 +22,13 @@ const TOKEN_REFRESH_THRESHOLD = 5 * 60 * 1000; // Refresh 5 minutes before expir
 
 /**
  * Get valid access token, refreshing if necessary
+ *
+ * Automatic refresh logic:
+ * - Checks if access token will expire within 5 minutes
+ * - If expiring soon, automatically refreshes using stored refresh token
+ * - When refreshed, Jobber rotates the refresh token (returns new refresh + access token)
+ * - New tokens are stored in Vercel KV with 30-day TTL (persists refresh token)
+ * - Returns current valid access token for immediate use
  */
 export async function getValidAccessToken(): Promise<string> {
   try {
@@ -36,7 +43,10 @@ export async function getValidAccessToken(): Promise<string> {
     const timeUntilExpiry = credentials.expires_at - now;
 
     if (timeUntilExpiry < TOKEN_REFRESH_THRESHOLD) {
-      console.log('Access token expiring soon, refreshing...');
+      console.log('Access token expiring soon, refreshing...', {
+        timeUntilExpirySeconds: Math.floor(timeUntilExpiry / 1000),
+        refreshThresholdSeconds: TOKEN_REFRESH_THRESHOLD / 1000,
+      });
       return await refreshJobberAccessToken(credentials.refresh_token);
     }
 
@@ -124,6 +134,12 @@ async function retrieveJobberCredentials(): Promise<JobberCredentials | null> {
  * Implements automatic refresh token rotation:
  * - When tokens are refreshed, immediately overwrite with newest values
  * - Old tokens become invalid
+ *
+ * IMPORTANT: TTL is set to 30 days to persist refresh token beyond access token lifetime
+ * - Access tokens expire in ~60 minutes (Jobber standard)
+ * - Refresh tokens are rotated on each refresh and stored with long TTL
+ * - getValidAccessToken() auto-refreshes before access token expires
+ * - New refresh token is stored when access token is refreshed
  */
 async function storeJobberCredentials(credentials: JobberCredentials): Promise<void> {
   try {
@@ -135,19 +151,21 @@ async function storeJobberCredentials(credentials: JobberCredentials): Promise<v
       token_type: credentials.token_type,
     };
 
-    // Calculate TTL from token expiration
-    const ttlSeconds = Math.max(
-      Math.floor((credentials.expires_at - Date.now()) / 1000),
-      3600 // Minimum 1 hour TTL
-    );
+    // Set long TTL (30 days) so refresh token persists across many access token refreshes
+    // This allows the token to be refreshed repeatedly without re-authorization
+    const ttlSeconds = 30 * 24 * 60 * 60; // 30 days in seconds
 
-    // Store in KV with automatic expiration
+    // Store in KV with automatic expiration after 30 days
     // This overwrites any previous tokens (implements refresh token rotation)
     await kv.set('jobber:tokens', JSON.stringify(encryptedCredentials), {
       ex: ttlSeconds,
     });
 
-    console.log('Jobber credentials stored/updated securely in KV');
+    console.log('Jobber credentials stored/updated securely in KV', {
+      ttlDays: 30,
+      accessTokenExpiresAt: new Date(credentials.expires_at).toISOString(),
+      kvExpirationDate: new Date(Date.now() + ttlSeconds * 1000).toISOString(),
+    });
   } catch (error) {
     console.error('Error storing Jobber credentials:', error);
     throw error;

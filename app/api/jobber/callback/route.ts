@@ -212,18 +212,21 @@ async function storeJobberTokens(tokens: JobberTokens): Promise<void> {
       token_type: tokens.token_type,
     };
 
-    // Calculate TTL (time to live) from token expiration
-    const ttlSeconds = Math.max(
-      Math.floor((tokens.expires_at - Date.now()) / 1000),
-      3600 // Minimum 1 hour TTL
-    );
+    // Set long TTL (30 days) so refresh token persists beyond access token lifetime
+    // Access tokens expire in ~60 minutes (Jobber standard)
+    // Refresh tokens are rotated on each refresh and need to persist across many accesses
+    const ttlSeconds = 30 * 24 * 60 * 60; // 30 days in seconds
 
-    // Store in Vercel KV with automatic expiration
+    // Store in Vercel KV with automatic expiration after 30 days
     await kv.set('jobber:tokens', JSON.stringify(encryptedTokens), {
       ex: ttlSeconds,
     });
 
-    console.log('Jobber tokens stored securely in KV with TTL:', ttlSeconds);
+    console.log('Jobber tokens stored securely in KV', {
+      ttlDays: 30,
+      accessTokenExpiresAt: new Date(tokens.expires_at).toISOString(),
+      kvExpirationDate: new Date(Date.now() + ttlSeconds * 1000).toISOString(),
+    });
   } catch (error) {
     console.error('Failed to store Jobber tokens:', error);
     throw new Error('Failed to store authentication tokens');
