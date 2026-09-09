@@ -2,10 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Anthropic } from '@anthropic-ai/sdk';
 import { getChatbotSystemPrompt } from '@/lib/chatbotKnowledge';
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
-
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
@@ -32,19 +28,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!process.env.ANTHROPIC_API_KEY) {
-      console.error('ANTHROPIC_API_KEY not configured');
+    // Validate API key is configured
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      console.error('ANTHROPIC_API_KEY not configured in environment');
       return NextResponse.json(
         { error: 'Chat service not configured' },
         { status: 500 }
       );
     }
 
+    // Initialize Anthropic client with valid API key
+    const client = new Anthropic({
+      apiKey: apiKey,
+    });
+
     // Build messages array for Claude
     const messages: ChatMessage[] = [
       ...conversationHistory,
       { role: 'user', content: message },
     ];
+
+    console.log('Calling Claude API with message:', message.substring(0, 50));
 
     // Call Claude API
     const response = await client.messages.create({
@@ -70,9 +75,17 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error('Chat API error:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorDetails = {
+      timestamp: new Date().toISOString(),
+      error: errorMessage,
+      errorType: error?.constructor?.name || 'Unknown',
+    };
 
-    // Return a helpful fallback message
+    console.error('Chat API error - Full Details:', errorDetails);
+    console.error('Chat API error - Stack:', error instanceof Error ? error.stack : 'No stack trace');
+
+    // Return detailed error info for debugging (includes actual error)
     const fallbackMessage =
       'I had trouble processing that. Please call us at (214) 218-2921 or email david@ufc-cleaning.com for immediate assistance!';
 
@@ -80,7 +93,11 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         message: fallbackMessage,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        debug: {
+          error: errorMessage,
+          type: error?.constructor?.name || 'Unknown',
+          timestamp: new Date().toISOString(),
+        },
       },
       { status: 500 }
     );
