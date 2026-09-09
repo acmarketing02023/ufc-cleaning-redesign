@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import BeforeAfterSlider from "@/components/BeforeAfterSlider";
+import QuickQuoteForm from "@/components/QuickQuoteForm";
 
 export default function Home() {
   const services = [
@@ -174,77 +175,7 @@ export default function Home() {
 
             {/* Quick Quote Form */}
             <div>
-              <form className="space-y-4">
-                <h3 className="text-2xl font-bold text-white mb-6">Quick Quote</h3>
-
-                <div>
-                  <input
-                    type="text"
-                    placeholder="Full Name"
-                    className="w-full px-4 py-3 border border-accent-500 rounded-lg bg-transparent text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-accent-500"
-                  />
-                </div>
-
-                <div>
-                  <input
-                    type="tel"
-                    placeholder="Phone Number"
-                    className="w-full px-4 py-3 border border-accent-500 rounded-lg bg-transparent text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-accent-500"
-                  />
-                </div>
-
-                <div>
-                  <input
-                    type="email"
-                    placeholder="Email Address"
-                    className="w-full px-4 py-3 border border-accent-500 rounded-lg bg-transparent text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-accent-500"
-                  />
-                </div>
-
-                <div>
-                  <select className="w-full px-4 py-3 border border-accent-500 rounded-lg bg-transparent text-white focus:outline-none focus:ring-2 focus:ring-accent-500 appearance-none">
-                    <option value="" className="bg-primary-800 text-white">Select Service</option>
-                    <option value="residential-cleaning" className="bg-primary-800 text-white">Residential Cleaning</option>
-                    <option value="deep-cleaning" className="bg-primary-800 text-white">Deep Cleaning</option>
-                    <option value="commercial-cleaning" className="bg-primary-800 text-white">Commercial Cleaning</option>
-                    <option value="post-construction" className="bg-primary-800 text-white">Post-Construction Cleaning</option>
-                    <option value="junk-removal" className="bg-primary-800 text-white">Junk Removal</option>
-                    <option value="power-washing" className="bg-primary-800 text-white">Power Washing</option>
-                    <option value="handyman" className="bg-primary-800 text-white">Handyman Services</option>
-                    <option value="moving" className="bg-primary-800 text-white">Moving Services</option>
-                    <option value="demolition" className="bg-primary-800 text-white">Demolition</option>
-                    <option value="vacation-rental" className="bg-primary-800 text-white">Vacation Rental Cleaning</option>
-                    <option value="move-in-move-out" className="bg-primary-800 text-white">Move-In / Move-Out</option>
-                    <option value="landlord" className="bg-primary-800 text-white">Landlord Services</option>
-                    <option value="real-estate" className="bg-primary-800 text-white">Real Estate Agents</option>
-                  </select>
-                </div>
-
-                <div>
-                  <input
-                    type="text"
-                    placeholder="Property Type (House/Office/etc)"
-                    className="w-full px-4 py-3 border border-accent-500 rounded-lg bg-transparent text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-accent-500"
-                  />
-                </div>
-
-                <div>
-                  <select className="w-full px-4 py-3 border border-accent-500 rounded-lg bg-transparent text-white focus:outline-none focus:ring-2 focus:ring-accent-500 appearance-none">
-                    <option value="" className="bg-primary-800 text-white">When Do You Need Service?</option>
-                    <option value="asap" className="bg-primary-800 text-white">ASAP / This Week</option>
-                    <option value="next-week" className="bg-primary-800 text-white">Next Week</option>
-                    <option value="within-month" className="bg-primary-800 text-white">Within a Month</option>
-                    <option value="flexible" className="bg-primary-800 text-white">Flexible</option>
-                  </select>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-accent-500 to-accent-600 text-primary-900 font-bold py-3 rounded-lg hover:from-accent-400 hover:to-accent-500 transition-all"
-                >
-                  Get Free Quote
-                </button>
-              </form>
+              <QuickQuoteForm />
             </div>
           </div>
         </div>

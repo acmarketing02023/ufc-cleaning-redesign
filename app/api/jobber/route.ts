@@ -236,7 +236,8 @@ function buildRequestInput(
   clientId: string,
   propertyId: string,
   formData: QuoteFormData,
-  totalPrice: number
+  totalPrice: number,
+  formType: "homepage_quick_quote" | "full_website_quote"
 ) {
   const frequencyMap: { [key: string]: string } = {
     'one-time': 'One-time',
@@ -259,10 +260,19 @@ function buildRequestInput(
     'heavily-cluttered': 'Heavily Cluttered',
   };
 
+  // Generate title based on form type
+  let requestTitle: string;
+  if (formType === "homepage_quick_quote") {
+    const fullName = `${formData.firstName} ${formData.lastName}`.trim();
+    requestTitle = `Homepage Quick Quote - ${fullName}`;
+  } else {
+    requestTitle = `Full Website Quote - ${formData.firstName} ${formData.lastName}`;
+  }
+
   return {
     clientId,
     propertyId,
-    title: `UFC Website Quote - ${formData.firstName} ${formData.lastName}`,
+    title: requestTitle,
     requestDetails: {
       form: {
         sections: [
@@ -375,10 +385,14 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { formData, totalPrice } = body as {
+    const { formData, totalPrice, formType } = body as {
       formData: QuoteFormData;
       totalPrice: number;
+      formType?: "homepage_quick_quote" | "full_website_quote";
     };
+
+    // Default to full_website_quote if not specified
+    const submissionFormType = formType || "full_website_quote";
 
     // Validate required fields
     if (
@@ -568,7 +582,8 @@ export async function POST(request: NextRequest) {
       clientId,
       propertyId,
       formData,
-      totalPrice
+      totalPrice,
+      submissionFormType
     );
 
     const requestId = await createRequest(accessToken, requestInput);

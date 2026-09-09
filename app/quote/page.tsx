@@ -216,6 +216,7 @@ export default function QuotePage() {
           data: jobberData,
           formData: formData,
           totalPrice: totalPrice,
+          formType: 'full_website_quote',
         }),
       });
 
