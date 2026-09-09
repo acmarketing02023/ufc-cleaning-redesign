@@ -13,6 +13,41 @@ export async function GET() {
     const introspectionQuery = `
       query {
         __schema {
+          mutationType {
+            name
+            fields {
+              name
+              description
+              args {
+                name
+                description
+                type {
+                  kind
+                  name
+                  ofType {
+                    kind
+                    name
+                    ofType {
+                      kind
+                      name
+                      ofType {
+                        kind
+                        name
+                      }
+                    }
+                  }
+                }
+              }
+              type {
+                kind
+                name
+                ofType {
+                  kind
+                  name
+                }
+              }
+            }
+          }
           types {
             name
             kind
@@ -97,6 +132,7 @@ export async function GET() {
       {
         success: true,
         totalTypes: allTypes.length,
+        mutationCount: mutations.length,
         types: allTypes,
         mutations: mutations,
       },
