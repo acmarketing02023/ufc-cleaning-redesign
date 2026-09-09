@@ -46,6 +46,7 @@ export function validateState(providedState: string, storedState: string): boole
 
 /**
  * Build Jobber authorization URL
+ * Uses Jobber's current OAuth authorization endpoint
  */
 export function buildAuthorizationUrl(
   clientId: string,
@@ -64,7 +65,7 @@ export function buildAuthorizationUrl(
     scope: scopes.join(' '),
   });
 
-  return `https://api.getjobber.com/oauth/authorize?${params.toString()}`;
+  return `https://api.getjobber.com/api/oauth/authorize?${params.toString()}`;
 }
 
 /**
