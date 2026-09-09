@@ -88,17 +88,13 @@ export async function GET() {
     const schema = result.data?.__schema;
     const types = schema?.types || [];
 
-    // Focus on the uncertain types
-    const typesToExtract = [
-      'FormInput',
-      'ClientFilterAttributes',
-      'ClientsConnection',
-      'ClientEdge',
-      'Client',
-    ];
-
+    // Extract all Form-related types and key types
     const relevantTypes = types.filter((t: any) =>
-      typesToExtract.includes(t.name)
+      t.name?.includes('Form') ||
+      t.name === 'ClientFilterAttributes' ||
+      t.name === 'ClientsConnection' ||
+      t.name === 'ClientEdge' ||
+      t.name === 'Client'
     );
 
     return NextResponse.json(
