@@ -87,13 +87,18 @@ export async function GET() {
 
     const schema = result.data?.__schema;
     const allTypes = schema?.types || [];
+    const mutationType = schema?.mutationType;
 
-    // Return all types - full schema introspection
+    // Get all mutation fields
+    const mutations = mutationType?.fields || [];
+
+    // Return schema with mutations and types
     return NextResponse.json(
       {
         success: true,
         totalTypes: allTypes.length,
         types: allTypes,
+        mutations: mutations,
       },
       { status: 200 }
     );
