@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { kv } from '@vercel/kv';
 import { exchangeCodeForTokens, validateState } from '@/lib/oauth';
+import { encrypt } from '@/lib/encryption';
 
 /**
  * OAuth Callback Route for Jobber
@@ -146,66 +148,21 @@ export async function GET(request: NextRequest) {
 
 /**
  * Retrieve stored OAuth session (state and code_verifier)
- *
- * TODO: Implement storage backend
- * Options:
- * 1. Vercel KV (Redis):
- *    ```
- *    import { kv } from '@vercel/kv';
- *    return await kv.get(`oauth:${state}`);
- *    ```
- *
- * 2. Database (Supabase, MongoDB, PostgreSQL, etc.):
- *    ```
- *    return await db.oauthSessions.findOne({ state });
- *    ```
- *
- * 3. Encrypted cookies (less recommended for sensitive data):
- *    ```
- *    const session = decrypt(cookies().get('oauth_session')?.value);
- *    ```
+ * Uses Vercel KV for temporary storage
  */
 async function getStoredOAuthSession(state: string): Promise<{ state: string; codeVerifier: string } | null> {
-  // PLACEHOLDER: Replace with actual storage implementation
-  console.warn('getStoredOAuthSession: Storage backend not implemented. Using placeholder.');
-
-  // Example implementation with Vercel KV:
-  // const { kv } = await import('@vercel/kv');
-  // const session = await kv.get(`oauth:${state}`);
-  // return session as { state: string; codeVerifier: string } | null;
-
-  return null; // Remove when implementing
+  try {
+    const session = await kv.get(`oauth:${state}`);
+    return session as { state: string; codeVerifier: string } | null;
+  } catch (error) {
+    console.error('Failed to retrieve OAuth session from KV:', error);
+    return null;
+  }
 }
 
 /**
- * Store Jobber tokens securely
- *
- * TODO: Implement storage backend
- * CRITICAL: Never log or expose tokens. Store encrypted.
- *
- * Options:
- * 1. Vercel KV (Redis):
- *    ```
- *    import { kv } from '@vercel/kv';
- *    const expiresIn = Math.floor((tokens.expires_at - Date.now()) / 1000);
- *    await kv.setex(
- *      'jobber:tokens',
- *      expiresIn,
- *      JSON.stringify(tokens)
- *    );
- *    ```
- *
- * 2. Database (with encryption):
- *    ```
- *    await db.jobberTokens.upsert({
- *      accessToken: encrypt(tokens.access_token),
- *      refreshToken: encrypt(tokens.refresh_token),
- *      expiresAt: new Date(tokens.expires_at)
- *    });
- *    ```
- *
- * 3. Encrypted environment variable (simple but less flexible):
- *    Not recommended for tokens that need to be refreshed
+ * Store Jobber tokens securely in Vercel KV
+ * Tokens are encrypted before storage
  */
 interface JobberTokens {
   access_token: string;
@@ -215,24 +172,41 @@ interface JobberTokens {
 }
 
 async function storeJobberTokens(tokens: JobberTokens): Promise<void> {
-  // PLACEHOLDER: Replace with actual storage implementation
-  console.warn('storeJobberTokens: Storage backend not implemented. Using placeholder.');
-  console.log('Token storage structure prepared for access_token, refresh_token, and expiration.');
+  try {
+    // Encrypt tokens before storage
+    const encryptedTokens = {
+      access_token: encrypt(tokens.access_token),
+      refresh_token: encrypt(tokens.refresh_token),
+      expires_at: tokens.expires_at,
+      token_type: tokens.token_type,
+    };
 
-  // Example implementation with Vercel KV:
-  // import { kv } from '@vercel/kv';
-  // await kv.set('jobber:tokens', JSON.stringify(tokens));
-  // await kv.expireat('jobber:tokens', Math.floor(tokens.expires_at / 1000));
+    // Calculate TTL (time to live) from token expiration
+    const ttlSeconds = Math.max(
+      Math.floor((tokens.expires_at - Date.now()) / 1000),
+      3600 // Minimum 1 hour TTL
+    );
+
+    // Store in Vercel KV with automatic expiration
+    await kv.set('jobber:tokens', JSON.stringify(encryptedTokens), {
+      ex: ttlSeconds,
+    });
+
+    console.log('Jobber tokens stored securely in KV with TTL:', ttlSeconds);
+  } catch (error) {
+    console.error('Failed to store Jobber tokens:', error);
+    throw new Error('Failed to store authentication tokens');
+  }
 }
 
 /**
  * Delete stored OAuth session after successful token exchange
  */
 async function deleteStoredOAuthSession(state: string): Promise<void> {
-  // PLACEHOLDER: Replace with actual storage implementation
-  console.warn('deleteStoredOAuthSession: Storage backend not implemented.');
-
-  // Example implementation with Vercel KV:
-  // import { kv } from '@vercel/kv';
-  // await kv.del(`oauth:${state}`);
+  try {
+    await kv.del(`oauth:${state}`);
+    console.log('OAuth session cleaned up');
+  } catch (error) {
+    console.warn('Failed to clean up OAuth session:', error);
+  }
 }

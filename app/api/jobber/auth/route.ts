@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { kv } from '@vercel/kv';
 import { generateState, generatePKCE, buildAuthorizationUrl } from '@/lib/oauth';
 
 /**
@@ -85,28 +86,20 @@ export async function GET() {
 }
 
 /**
- * Store OAuth session state and code_verifier
- *
- * TODO: Implement with your storage backend
- * This must be temporary storage that expires in 10 minutes
+ * Store OAuth session state and code_verifier in Vercel KV
+ * Expires in 10 minutes for security
  */
 async function storeOAuthSession(state: string, codeVerifier: string): Promise<void> {
-  // PLACEHOLDER: Replace with actual storage implementation
-  console.warn('storeOAuthSession: Storage backend not implemented.');
-
-  // Example with Vercel KV:
-  // import { kv } from '@vercel/kv';
-  // await kv.setex(
-  //   `oauth:${state}`,
-  //   600, // 10 minute expiration
-  //   JSON.stringify({ state, codeVerifier })
-  // );
-
-  // Example with database:
-  // const { db } = await import('@/lib/db');
-  // await db.oauthSessions.create({
-  //   state,
-  //   codeVerifier,
-  //   expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-  // });
+  try {
+    const session = { state, codeVerifier };
+    await kv.setex(
+      `oauth:${state}`,
+      600, // 10 minute expiration for security
+      JSON.stringify(session)
+    );
+    console.log('OAuth session stored in KV');
+  } catch (error) {
+    console.error('Failed to store OAuth session in KV:', error);
+    throw new Error('Failed to initiate OAuth flow');
+  }
 }

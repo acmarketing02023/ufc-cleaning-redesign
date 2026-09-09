@@ -63,7 +63,15 @@ Add these to your Vercel project settings:
 JOBBER_CLIENT_ID=your_client_id_here
 JOBBER_CLIENT_SECRET=your_client_secret_here
 JOBBER_REDIRECT_URI=https://ufc-cleaning.com/api/jobber/callback
+ENCRYPTION_KEY=your_32_byte_hex_string_here
 ```
+
+**Generate ENCRYPTION_KEY:**
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+This generates a secure 256-bit encryption key for token storage.
 
 ### 3. Implement Token Storage Backend
 

@@ -1,4 +1,6 @@
 import { refreshAccessToken } from './oauth';
+import { kv } from '@vercel/kv';
+import { encrypt, decrypt } from './encryption';
 
 export interface JobberCredentials {
   access_token: string;
@@ -20,31 +22,29 @@ const TOKEN_REFRESH_THRESHOLD = 5 * 60 * 1000; // Refresh 5 minutes before expir
 
 /**
  * Get valid access token, refreshing if necessary
- *
- * TODO: Implement with your storage backend
  */
 export async function getValidAccessToken(): Promise<string> {
-  // PLACEHOLDER: Replace with actual storage implementation
-  console.warn('getValidAccessToken: Storage backend not implemented.');
+  try {
+    const credentials = await retrieveJobberCredentials();
 
-  // Example implementation:
-  // const credentials = await retrieveJobberCredentials();
-  //
-  // if (!credentials) {
-  //   throw new Error('No Jobber credentials stored');
-  // }
-  //
-  // // Check if token is expired or about to expire
-  // const now = Date.now();
-  // const timeUntilExpiry = credentials.expires_at - now;
-  //
-  // if (timeUntilExpiry < TOKEN_REFRESH_THRESHOLD) {
-  //   return await refreshJobberAccessToken(credentials.refresh_token);
-  // }
-  //
-  // return credentials.access_token;
+    if (!credentials) {
+      throw new Error('No Jobber credentials stored. Please authorize first.');
+    }
 
-  throw new Error('Jobber token manager not configured. Storage backend must be implemented.');
+    // Check if token is expired or about to expire
+    const now = Date.now();
+    const timeUntilExpiry = credentials.expires_at - now;
+
+    if (timeUntilExpiry < TOKEN_REFRESH_THRESHOLD) {
+      console.log('Access token expiring soon, refreshing...');
+      return await refreshJobberAccessToken(credentials.refresh_token);
+    }
+
+    return credentials.access_token;
+  } catch (error) {
+    console.error('Error getting valid access token:', error);
+    throw error;
+  }
 }
 
 /**
@@ -92,65 +92,77 @@ export async function refreshJobberAccessToken(refreshToken: string): Promise<st
 }
 
 /**
- * Retrieve stored Jobber credentials
- *
- * TODO: Implement with your storage backend
- * Options:
- * - Vercel KV: kv.get('jobber:credentials')
- * - Database: db.jobberCredentials.findFirst()
- * - Encrypted cookies: decrypt from request
+ * Retrieve stored Jobber credentials from Vercel KV
  */
 async function retrieveJobberCredentials(): Promise<JobberCredentials | null> {
-  // PLACEHOLDER: Replace with actual storage implementation
-  console.warn('retrieveJobberCredentials: Storage backend not implemented.');
-  return null;
+  try {
+    const stored = await kv.get('jobber:tokens');
+
+    if (!stored) {
+      return null;
+    }
+
+    const parsed = JSON.parse(stored as string);
+
+    // Decrypt the tokens
+    const credentials: JobberCredentials = {
+      access_token: decrypt(parsed.access_token),
+      refresh_token: decrypt(parsed.refresh_token),
+      expires_at: parsed.expires_at,
+      token_type: parsed.token_type,
+    };
+
+    return credentials;
+  } catch (error) {
+    console.error('Error retrieving Jobber credentials:', error);
+    return null;
+  }
 }
 
 /**
- * Store Jobber credentials
- *
- * TODO: Implement with your storage backend
- * CRITICAL SECURITY:
- * - Encrypt access_token and refresh_token before storage
- * - Use secure storage (database, KV cache, etc.)
- * - Never log tokens
- * - Set appropriate expiration on refresh_token storage
+ * Store Jobber credentials in Vercel KV with encryption
+ * Implements automatic refresh token rotation:
+ * - When tokens are refreshed, immediately overwrite with newest values
+ * - Old tokens become invalid
  */
 async function storeJobberCredentials(credentials: JobberCredentials): Promise<void> {
-  // PLACEHOLDER: Replace with actual storage implementation
-  console.warn('storeJobberCredentials: Storage backend not implemented.');
-  console.log('Prepared to store credentials with expiration:', new Date(credentials.expires_at));
+  try {
+    // Encrypt sensitive tokens
+    const encryptedCredentials = {
+      access_token: encrypt(credentials.access_token),
+      refresh_token: encrypt(credentials.refresh_token),
+      expires_at: credentials.expires_at,
+      token_type: credentials.token_type,
+    };
 
-  // Example with Vercel KV:
-  // import { kv } from '@vercel/kv';
-  // const expiresIn = Math.floor((credentials.expires_at - Date.now()) / 1000);
-  // await kv.setex(
-  //   'jobber:credentials',
-  //   expiresIn,
-  //   JSON.stringify(credentials)
-  // );
+    // Calculate TTL from token expiration
+    const ttlSeconds = Math.max(
+      Math.floor((credentials.expires_at - Date.now()) / 1000),
+      3600 // Minimum 1 hour TTL
+    );
 
-  // Example with database:
-  // await db.jobberCredentials.upsert({
-  //   id: 'default',
-  //   accessToken: encrypt(credentials.access_token),
-  //   refreshToken: encrypt(credentials.refresh_token),
-  //   expiresAt: new Date(credentials.expires_at),
-  //   updatedAt: new Date(),
-  // });
+    // Store in KV with automatic expiration
+    // This overwrites any previous tokens (implements refresh token rotation)
+    await kv.set('jobber:tokens', JSON.stringify(encryptedCredentials), {
+      ex: ttlSeconds,
+    });
+
+    console.log('Jobber credentials stored/updated securely in KV');
+  } catch (error) {
+    console.error('Error storing Jobber credentials:', error);
+    throw error;
+  }
 }
 
 /**
  * Clear stored Jobber credentials (for logout/disconnect)
  */
 export async function clearJobberCredentials(): Promise<void> {
-  // PLACEHOLDER: Replace with actual storage implementation
-  console.warn('clearJobberCredentials: Storage backend not implemented.');
-
-  // Example with Vercel KV:
-  // import { kv } from '@vercel/kv';
-  // await kv.del('jobber:credentials');
-
-  // Example with database:
-  // await db.jobberCredentials.deleteMany();
+  try {
+    await kv.del('jobber:tokens');
+    console.log('Jobber credentials cleared');
+  } catch (error) {
+    console.error('Error clearing Jobber credentials:', error);
+    throw error;
+  }
 }
