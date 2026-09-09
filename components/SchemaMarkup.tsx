@@ -27,9 +27,9 @@ export default function SchemaMarkup() {
       "name": "Universal Facility Cleaning LLC"
     },
     "sameAs": [
-      "https://www.facebook.com/ufccleaningrowlett",
-      "https://www.instagram.com/ufccleaning",
-      "https://www.tiktok.com/@ufccleaning"
+      "https://www.facebook.com/share/1JVdrScXCn/?mibextid=wwXIfr",
+      "https://www.instagram.com/universalfacilitycleaning",
+      "https://www.tiktok.com/@ufcleaning"
     ],
     "knowsAbout": [
       "Residential Cleaning",
