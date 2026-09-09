@@ -37,6 +37,7 @@ export default function QuickQuoteForm() {
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    console.log("[QuickQuoteForm] Form submitted, preventing default");
     e.preventDefault();
 
     // Validate required fields
@@ -60,6 +61,7 @@ export default function QuickQuoteForm() {
       const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
 
       // Prepare payload for backend
+      console.log("[QuickQuoteForm] Submitting to /api/jobber with formType: homepage_quick_quote");
       const response = await fetch("/api/jobber", {
         method: "POST",
         headers: {
