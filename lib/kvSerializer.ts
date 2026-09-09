@@ -98,3 +98,19 @@ export async function kvKeyExists(key: string): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Delete a KV key
+ */
+export async function kvDelete(key: string): Promise<void> {
+  try {
+    await kv.del(key);
+    console.log('kvDelete: Key deleted successfully', { key });
+  } catch (error) {
+    console.error('kvDelete: Failed to delete KV key', {
+      key,
+      error: String(error),
+    });
+    throw error;
+  }
+}

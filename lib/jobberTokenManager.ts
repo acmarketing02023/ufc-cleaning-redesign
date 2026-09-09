@@ -1,5 +1,5 @@
 import { refreshAccessToken } from './oauth';
-import { kvGetParsed, kvSetSerialized } from './kvSerializer';
+import { kvGetParsed, kvSetSerialized, kvDelete } from './kvSerializer';
 import { encrypt, decrypt } from './encryption';
 
 export interface JobberCredentials {
@@ -219,7 +219,7 @@ async function storeJobberCredentials(credentials: JobberCredentials): Promise<v
  */
 export async function clearJobberCredentials(): Promise<void> {
   try {
-    await kv.del('jobber:tokens');
+    await kvDelete('jobber:tokens');
     console.log('Jobber credentials cleared');
   } catch (error) {
     console.error('Error clearing Jobber credentials:', error);
