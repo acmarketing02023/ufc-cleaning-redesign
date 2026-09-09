@@ -16,6 +16,16 @@ import { encrypt } from '@/lib/encryption';
  */
 export async function GET(request: NextRequest) {
   try {
+    // Log KV environment diagnostics
+    const kvUrl = process.env.KV_REST_API_URL;
+    const kvToken = process.env.KV_REST_API_TOKEN;
+    console.log('Callback route KV environment check', {
+      kvRestApiUrlExists: !!kvUrl,
+      kvRestApiUrlPrefix: kvUrl ? kvUrl.substring(0, 30) : 'NOT_SET',
+      kvRestApiTokenExists: !!kvToken,
+      kvRestApiTokenLength: kvToken ? kvToken.length : 0,
+    });
+
     const searchParams = request.nextUrl.searchParams;
     const code = searchParams.get('code');
     const state = searchParams.get('state');

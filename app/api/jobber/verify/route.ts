@@ -12,6 +12,16 @@ import { getValidAccessToken } from '@/lib/jobberTokenManager';
  */
 export async function GET() {
   try {
+    // Log KV environment diagnostics
+    const kvUrl = process.env.KV_REST_API_URL;
+    const kvToken = process.env.KV_REST_API_TOKEN;
+    console.log('Verify endpoint KV environment check', {
+      kvRestApiUrlExists: !!kvUrl,
+      kvRestApiUrlPrefix: kvUrl ? kvUrl.substring(0, 30) : 'NOT_SET',
+      kvRestApiTokenExists: !!kvToken,
+      kvRestApiTokenLength: kvToken ? kvToken.length : 0,
+    });
+
     console.log('Starting Jobber API verification...');
 
     // DIAGNOSTIC: Check KV directly before calling getValidAccessToken
