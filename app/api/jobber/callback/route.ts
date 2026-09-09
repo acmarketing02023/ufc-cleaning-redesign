@@ -235,10 +235,45 @@ async function storeJobberTokens(tokens: JobberTokens): Promise<void> {
     });
 
     // Call kv.set with explicit options (empty object = no TTL/expiration)
-    const result = await kv.set('jobber:tokens', jsonString, {});
+    const setResult = await kv.set('jobber:tokens', jsonString, {});
+    console.log('kv.set() call completed', {
+      kvSetResult: setResult,
+      kvKey: 'jobber:tokens',
+      dataLengthBytes: jsonString.length,
+    });
+
+    // IMMEDIATE VERIFICATION: Check if the key exists right after set
+    console.log('Performing immediate KV retrieval verification...');
+    const immediateVerify = await kv.get('jobber:tokens');
+
+    if (immediateVerify === null || immediateVerify === undefined) {
+      console.error('CRITICAL: kv.get() returned null/undefined immediately after kv.set()', {
+        kvKey: 'jobber:tokens',
+        setResultWas: setResult,
+        immediateGetResult: immediateVerify,
+      });
+    } else {
+      try {
+        const verifyParsed = JSON.parse(immediateVerify as string);
+        console.log('Immediate verification: Key exists and is parseable', {
+          kvKey: 'jobber:tokens',
+          valueType: typeof immediateVerify,
+          valueLengthBytes: String(immediateVerify).length,
+          hasAccessTokenField: !!verifyParsed.access_token,
+          hasRefreshTokenField: !!verifyParsed.refresh_token,
+          hasExpiresAtField: !!verifyParsed.expires_at,
+          hasTokenTypeField: !!verifyParsed.token_type,
+        });
+      } catch (verifyParseError) {
+        console.error('Immediate verification: JSON parsing failed', {
+          error: String(verifyParseError),
+          valueType: typeof immediateVerify,
+        });
+      }
+    }
 
     console.log('Jobber tokens stored persistently in KV', {
-      kvSetResult: result,
+      kvSetResult: setResult,
       accessTokenExpiresAt: new Date(tokens.expires_at).toISOString(),
       storageType: 'persistent (no TTL)',
       refreshTokenRotation: 'enabled - new tokens replace old pair atomically',

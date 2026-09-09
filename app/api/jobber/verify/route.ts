@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { kv } from '@vercel/kv';
 import { getValidAccessToken } from '@/lib/jobberTokenManager';
 
 /**
@@ -12,6 +13,37 @@ import { getValidAccessToken } from '@/lib/jobberTokenManager';
 export async function GET() {
   try {
     console.log('Starting Jobber API verification...');
+
+    // DIAGNOSTIC: Check KV directly before calling getValidAccessToken
+    console.log('Performing direct KV diagnostics...');
+    const kvDirect = await kv.get('jobber:tokens');
+
+    if (kvDirect === null || kvDirect === undefined) {
+      console.error('CRITICAL: KV key does not exist', {
+        kvKey: 'jobber:tokens',
+        kvGetResult: kvDirect,
+        kvGetResultType: typeof kvDirect,
+      });
+    } else {
+      try {
+        const directParsed = JSON.parse(kvDirect as string);
+        console.log('KV key exists and is parseable', {
+          kvKey: 'jobber:tokens',
+          valueType: typeof kvDirect,
+          valueLengthBytes: String(kvDirect).length,
+          hasAccessTokenField: !!directParsed.access_token,
+          hasRefreshTokenField: !!directParsed.refresh_token,
+          hasExpiresAtField: !!directParsed.expires_at,
+          hasTokenTypeField: !!directParsed.token_type,
+        });
+      } catch (directParseError) {
+        console.error('KV value exists but JSON parsing failed', {
+          error: String(directParseError),
+          valueType: typeof kvDirect,
+          valueLengthBytes: String(kvDirect).length,
+        });
+      }
+    }
 
     // Get valid access token (will auto-refresh if within 5 minutes of expiration)
     let accessToken;
