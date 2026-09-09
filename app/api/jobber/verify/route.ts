@@ -79,18 +79,104 @@ export async function GET() {
 
     console.log('Sending GraphQL query to Jobber API...');
 
-    const jobberApiResponse = await fetch('https://api.getjobber.com/graphql', {
+    const graphQLEndpoint = 'https://api.getjobber.com/api/graphql';
+    const requestBody = JSON.stringify(graphQLQuery);
+
+    console.log('GraphQL request details:', {
+      endpoint: graphQLEndpoint,
+      method: 'POST',
+      contentTypeHeader: 'application/json',
+      authHeaderPresent: !!accessToken,
+      authHeaderLength: accessToken.length,
+      requestBodyLength: requestBody.length,
+    });
+
+    const jobberApiResponse = await fetch(graphQLEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${accessToken}`,
       },
-      body: JSON.stringify(graphQLQuery),
+      body: requestBody,
     });
 
-    console.log('Jobber GraphQL response status:', jobberApiResponse.status);
+    // Log response metadata WITHOUT parsing JSON yet
+    const responseContentType = jobberApiResponse.headers.get('content-type');
+    const responseUrl = jobberApiResponse.url;
 
-    const graphQLData = await jobberApiResponse.json();
+    console.log('Jobber GraphQL response metadata:', {
+      status: jobberApiResponse.status,
+      statusText: jobberApiResponse.statusText,
+      contentType: responseContentType,
+      responseUrl: responseUrl,
+      isJsonContentType: responseContentType?.includes('application/json') ?? false,
+    });
+
+    // Read response body safely first
+    let responseBodyText: string;
+    try {
+      responseBodyText = await jobberApiResponse.text();
+    } catch (readError) {
+      console.error('Failed to read response body:', readError);
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Failed to read Jobber API response',
+          details: String(readError),
+        },
+        { status: 500 }
+      );
+    }
+
+    // Log first ~100 chars of response (safe preview)
+    const responsePreview = responseBodyText.substring(0, 100);
+    console.log('Response body preview (first 100 chars):', { preview: responsePreview });
+
+    // Only attempt JSON parsing if content-type is JSON
+    if (!responseContentType?.includes('application/json')) {
+      console.error('CRITICAL: Jobber returned non-JSON response', {
+        endpoint: graphQLEndpoint,
+        status: jobberApiResponse.status,
+        contentType: responseContentType,
+        isHtml: responseBodyText.includes('<!DOCTYPE'),
+        isHtmlTag: responseBodyText.includes('<html'),
+        bodyPreview: responsePreview,
+      });
+
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Jobber API returned non-JSON response',
+          details: `Expected application/json, got ${responseContentType}`,
+          diagnostics: {
+            status: jobberApiResponse.status,
+            contentType: responseContentType,
+            looksLikeHtml: responseBodyText.includes('<!DOCTYPE'),
+            endpoint: graphQLEndpoint,
+          },
+        },
+        { status: 500 }
+      );
+    }
+
+    // Now safely parse JSON
+    let graphQLData;
+    try {
+      graphQLData = JSON.parse(responseBodyText);
+    } catch (parseError) {
+      console.error('Failed to parse GraphQL response as JSON:', {
+        error: String(parseError),
+        bodyPreview: responsePreview,
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Failed to parse Jobber API response',
+          details: 'Response was not valid JSON',
+        },
+        { status: 500 }
+      );
+    }
 
     if (!jobberApiResponse.ok || graphQLData.errors) {
       const errors = graphQLData.errors || [];
