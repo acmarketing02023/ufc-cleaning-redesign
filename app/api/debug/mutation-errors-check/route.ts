@@ -12,7 +12,52 @@ export async function GET() {
 
     const introspectionQuery = `
       query {
-        __type(name: "MutationError") {
+        mutationErrorType: __type(name: "MutationError") {
+          name
+          kind
+          fields {
+            name
+            type {
+              kind
+              name
+              ofType {
+                kind
+                name
+              }
+            }
+          }
+        }
+        userErrorType: __type(name: "UserError") {
+          name
+          kind
+          fields {
+            name
+            type {
+              kind
+              name
+              ofType {
+                kind
+                name
+              }
+            }
+          }
+        }
+        clientErrorType: __type(name: "ClientError") {
+          name
+          kind
+          fields {
+            name
+            type {
+              kind
+              name
+              ofType {
+                kind
+                name
+              }
+            }
+          }
+        }
+        validationErrorType: __type(name: "ValidationError") {
           name
           kind
           fields {
