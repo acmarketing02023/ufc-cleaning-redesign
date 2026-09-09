@@ -19,6 +19,14 @@ interface QuoteFormData {
 }
 
 /**
+ * Result from client lookup - distinguishes between "not found" and "error"
+ */
+type ClientLookupResult =
+  | { status: 'found'; clientId: string; properties: any[] }
+  | { status: 'not_found' }
+  | { status: 'error'; error: string };
+
+/**
  * Normalize phone number to digits only for comparison
  */
 function normalizePhone(phone: string): string {
@@ -45,12 +53,13 @@ function normalizeAddress(address: string): string {
 
 /**
  * Query clients with pagination to find existing client by email/phone
+ * Returns error status if GraphQL query itself fails (not just if client not found)
  */
 async function findExistingClient(
   accessToken: string,
   email: string,
   phone: string
-): Promise<{ id: string; properties: any[] } | null> {
+): Promise<ClientLookupResult> {
   const normalizedEmail = normalizeEmail(email);
   const normalizedPhone = normalizePhone(phone);
 
@@ -104,9 +113,11 @@ async function findExistingClient(
       variables: { first: 100, after: cursor },
     });
 
+    // CRITICAL: If query itself fails, return error status (do not silently treat as "not found")
     if (!result.success) {
-      console.error('Failed to query clients:', result.error);
-      return null;
+      const errorMsg = result.error || 'Unknown error';
+      console.error('Client lookup failed:', errorMsg);
+      return { status: 'error', error: errorMsg };
     }
 
     const clients = result.data?.clients?.edges?.map((e: any) => e.node) || [];
@@ -123,7 +134,8 @@ async function findExistingClient(
       // Email match (primary)
       if (normalizedEmail && clientEmails.includes(normalizedEmail)) {
         return {
-          id: client.id,
+          status: 'found',
+          clientId: client.id,
           properties: client.clientProperties?.nodes || [],
         };
       }
@@ -131,7 +143,8 @@ async function findExistingClient(
       // Phone match (fallback)
       if (normalizedPhone && clientPhones.includes(normalizedPhone)) {
         return {
-          id: client.id,
+          status: 'found',
+          clientId: client.id,
           properties: client.clientProperties?.nodes || [],
         };
       }
@@ -141,7 +154,8 @@ async function findExistingClient(
     cursor = result.data?.clients?.pageInfo?.endCursor;
   }
 
-  return null;
+  // After all pages: no client found
+  return { status: 'not_found' };
 }
 
 /**
@@ -190,7 +204,6 @@ async function createProperty(
         }
         userErrors {
           message
-          field
         }
       }
     }
@@ -204,7 +217,7 @@ async function createProperty(
         properties: [
           {
             address: {
-              street1: address, // Entire address goes into street1
+              street1: address,
             },
           },
         ],
@@ -219,7 +232,10 @@ async function createProperty(
 
   const userErrors = result.data?.propertyCreate?.userErrors;
   if (userErrors && userErrors.length > 0) {
-    console.error('Property creation userErrors:', userErrors);
+    console.error(
+      'Property creation userErrors:',
+      userErrors.map((e: any) => e.message).join('; ')
+    );
     return null;
   }
 
@@ -247,7 +263,6 @@ async function createClient(
         }
         userErrors {
           message
-          field
         }
       }
     }
@@ -294,7 +309,10 @@ async function createClient(
 
   const userErrors = result.data?.clientCreate?.userErrors;
   if (userErrors && userErrors.length > 0) {
-    console.error('Client creation userErrors:', userErrors);
+    console.error(
+      'Client creation userErrors:',
+      userErrors.map((e: any) => e.message).join('; ')
+    );
     return null;
   }
 
@@ -445,7 +463,6 @@ async function createRequest(
         }
         userErrors {
           message
-          field
         }
       }
     }
@@ -463,7 +480,10 @@ async function createRequest(
 
   const userErrors = result.data?.requestCreate?.userErrors;
   if (userErrors && userErrors.length > 0) {
-    console.error('Request creation userErrors:', userErrors);
+    console.error(
+      'Request creation userErrors:',
+      userErrors.map((e: any) => e.message).join('; ')
+    );
     return null;
   }
 
@@ -515,24 +535,34 @@ export async function POST(request: NextRequest) {
     console.log(
       `Searching for existing client: ${formData.email} / ${formData.phone}`
     );
-    const existingClient = await findExistingClient(
+    const clientLookup = await findExistingClient(
       accessToken,
       formData.email,
       formData.phone
     );
 
+    // CRITICAL: If lookup itself failed, return error and STOP
+    if (clientLookup.status === 'error') {
+      console.error('Client lookup failed with error:', clientLookup.error);
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Failed to query existing clients',
+          details: clientLookup.error,
+        },
+        { status: 500 }
+      );
+    }
+
     let clientId: string;
     let propertyId: string | null;
 
-    if (existingClient) {
-      console.log(`Found existing client: ${existingClient.id}`);
-      clientId = existingClient.id;
+    if (clientLookup.status === 'found') {
+      console.log(`Found existing client: ${clientLookup.clientId}`);
+      clientId = clientLookup.clientId;
 
       // Step 2: Check if address matches existing property
-      propertyId = findMatchingProperty(
-        formData.address,
-        existingClient.properties
-      );
+      propertyId = findMatchingProperty(formData.address, clientLookup.properties);
 
       if (!propertyId) {
         console.log('Address does not match existing properties, creating new property');
@@ -557,6 +587,7 @@ export async function POST(request: NextRequest) {
         console.log(`Using existing property: ${propertyId}`);
       }
     } else {
+      // clientLookup.status === 'not_found'
       console.log('No existing client found, creating new client with property');
       // Step 4: Create new client with property
       const newClientResult = await createClient(
