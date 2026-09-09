@@ -77,6 +77,7 @@ export async function GET(request: NextRequest) {
     // Validate state using timing-safe comparison
     try {
       validateState(state, storedOAuthSession.state);
+      console.log('OAuth state validation successful');
     } catch (error) {
       console.error('State validation failed');
       return NextResponse.json(
@@ -85,9 +86,23 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Log PKCE verifier information (sanitized)
+    console.log('PKCE code_verifier retrieved from storage:', {
+      verifierLength: storedOAuthSession.codeVerifier.length,
+      verifierPrefix: storedOAuthSession.codeVerifier.substring(0, 8),
+      verifierSuffix: storedOAuthSession.codeVerifier.substring(storedOAuthSession.codeVerifier.length - 8),
+    });
+
     // Exchange authorization code for tokens using PKCE
     let tokens;
     try {
+      console.log('Initiating token exchange with Jobber...', {
+        clientIdMatch: clientId ? `${clientId.length} chars` : 'MISSING',
+        clientSecretMatch: clientSecret ? `${clientSecret.length} chars` : 'MISSING',
+        redirectUri: redirectUri,
+        codeLength: code.length,
+        verifierLength: storedOAuthSession.codeVerifier.length,
+      });
       tokens = await exchangeCodeForTokens(
         clientId,
         clientSecret,
@@ -95,10 +110,26 @@ export async function GET(request: NextRequest) {
         redirectUri,
         storedOAuthSession.codeVerifier
       );
+      console.log('Token exchange completed successfully');
     } catch (error) {
-      console.error('Token exchange failed:', error);
+      const errorMessage = String(error);
+      console.error('Token exchange failed with error:', {
+        errorMessage: errorMessage,
+        errorType: error instanceof Error ? error.name : typeof error,
+      });
       return NextResponse.json(
-        { success: false, error: 'Failed to exchange authorization code for tokens' },
+        {
+          success: false,
+          error: 'Failed to exchange authorization code for tokens',
+          details: errorMessage,
+          debugInfo: {
+            clientIdProvided: !!clientId,
+            clientSecretProvided: !!clientSecret,
+            codeReceived: !!code,
+            stateValidated: true,
+            verifierRetrieved: !!storedOAuthSession.codeVerifier,
+          }
+        },
         { status: 500 }
       );
     }

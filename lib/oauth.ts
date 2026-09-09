@@ -70,6 +70,7 @@ export function buildAuthorizationUrl(
 
 /**
  * Exchange authorization code for tokens
+ * POSTs to Jobber's current OAuth token endpoint
  */
 export async function exchangeCodeForTokens(
   clientId: string,
@@ -83,30 +84,115 @@ export async function exchangeCodeForTokens(
   expires_in: number;
   token_type: string;
 }> {
-  const response = await fetch('https://api.getjobber.com/oauth/token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({
+  try {
+    // Log request parameters (sanitized - no secrets)
+    console.log('OAuth token exchange initiated:', {
+      endpoint: 'https://api.getjobber.com/api/oauth/token',
+      method: 'POST',
+      contentType: 'application/x-www-form-urlencoded',
+      clientIdLength: clientId.length,
+      clientSecretLength: clientSecret.length,
+      grantType: 'authorization_code',
+      redirectUri: redirectUri,
+      codeVerifierLength: codeVerifier.length,
+      codeLengthReceived: code.length,
+      parameters: [
+        'grant_type=authorization_code',
+        `client_id=[${clientId.length} chars]`,
+        `client_secret=[${clientSecret.length} chars]`,
+        `code=[${code.length} chars]`,
+        `redirect_uri=${redirectUri}`,
+        `code_verifier=[${codeVerifier.length} chars]`,
+      ],
+    });
+
+    const tokenEndpoint = 'https://api.getjobber.com/api/oauth/token';
+
+    const requestBody = new URLSearchParams({
       grant_type: 'authorization_code',
       code: code,
       client_id: clientId,
       client_secret: clientSecret,
       redirect_uri: redirectUri,
       code_verifier: codeVerifier,
-    }).toString(),
-  });
+    });
 
-  if (!response.ok) {
-    throw new Error(`OAuth token exchange failed: ${response.statusText}`);
+    const response = await fetch(tokenEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: requestBody.toString(),
+    });
+
+    // Log response status and content-type
+    const contentType = response.headers.get('content-type');
+    console.log('Jobber token endpoint response:', {
+      status: response.status,
+      statusText: response.statusText,
+      contentType: contentType,
+    });
+
+    // Parse response
+    let responseData;
+    let responseText = '';
+    try {
+      responseText = await response.text();
+      responseData = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Failed to parse Jobber token response:', {
+        status: response.status,
+        contentType: contentType,
+        responseLength: responseText.length,
+        responsePreview: responseText.substring(0, 200),
+      });
+      throw new Error(`Jobber token endpoint returned non-JSON response: ${response.status} ${response.statusText}`);
+    }
+
+    if (!response.ok) {
+      // Log sanitized error response (no secrets)
+      const sanitizedError = {
+        status: response.status,
+        statusText: response.statusText,
+        error: responseData.error,
+        error_description: responseData.error_description,
+        errorDetails: responseData,
+      };
+      console.error('Jobber token exchange error (Forbidden/4xx):', sanitizedError);
+
+      // Provide actionable error message
+      const errorMsg = responseData.error_description || responseData.error || 'Unknown error';
+      throw new Error(`OAuth token exchange failed: ${response.status} ${response.statusText} - ${errorMsg}`);
+    }
+
+    // Verify response contains required fields
+    if (!responseData.access_token || !responseData.refresh_token) {
+      console.error('Token response missing required fields:', {
+        hasAccessToken: !!responseData.access_token,
+        hasRefreshToken: !!responseData.refresh_token,
+        hasExpiresIn: !!responseData.expires_in,
+        hasTokenType: !!responseData.token_type,
+      });
+      throw new Error('Token response missing access_token or refresh_token');
+    }
+
+    console.log('OAuth token exchange successful:', {
+      accessTokenLength: responseData.access_token.length,
+      refreshTokenLength: responseData.refresh_token.length,
+      expiresIn: responseData.expires_in,
+      tokenType: responseData.token_type,
+    });
+    return responseData;
+
+  } catch (error) {
+    console.error('Token exchange error:', error);
+    throw error;
   }
-
-  return response.json();
 }
 
 /**
  * Refresh access token using refresh token
+ * POSTs to Jobber's current OAuth token endpoint
  */
 export async function refreshAccessToken(
   clientId: string,
@@ -118,22 +204,76 @@ export async function refreshAccessToken(
   expires_in: number;
   token_type: string;
 }> {
-  const response = await fetch('https://api.getjobber.com/oauth/token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: refreshToken,
-      client_id: clientId,
-      client_secret: clientSecret,
-    }).toString(),
-  });
+  try {
+    console.log('Token refresh initiated', {
+      endpoint: 'https://api.getjobber.com/api/oauth/token',
+      method: 'POST',
+      contentType: 'application/x-www-form-urlencoded',
+      grantType: 'refresh_token',
+      clientIdLength: clientId.length,
+      clientSecretLength: clientSecret.length,
+      refreshTokenLength: refreshToken.length,
+    });
 
-  if (!response.ok) {
-    throw new Error(`Token refresh failed: ${response.statusText}`);
+    const tokenEndpoint = 'https://api.getjobber.com/api/oauth/token';
+
+    const response = await fetch(tokenEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+        client_id: clientId,
+        client_secret: clientSecret,
+      }).toString(),
+    });
+
+    const contentType = response.headers.get('content-type');
+    console.log('Jobber token refresh response:', {
+      status: response.status,
+      statusText: response.statusText,
+      contentType: contentType,
+    });
+
+    let responseData;
+    let responseText = '';
+    try {
+      responseText = await response.text();
+      responseData = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Failed to parse Jobber token refresh response:', {
+        status: response.status,
+        contentType: contentType,
+        responseLength: responseText.length,
+        responsePreview: responseText.substring(0, 200),
+      });
+      throw new Error(`Jobber token endpoint returned non-JSON response: ${response.status} ${response.statusText}`);
+    }
+
+    if (!response.ok) {
+      const sanitizedError = {
+        status: response.status,
+        statusText: response.statusText,
+        error: responseData.error,
+        error_description: responseData.error_description,
+        errorDetails: responseData,
+      };
+      console.error('Jobber token refresh error:', sanitizedError);
+      const errorMsg = responseData.error_description || responseData.error || 'Unknown error';
+      throw new Error(`Token refresh failed: ${response.status} ${response.statusText} - ${errorMsg}`);
+    }
+
+    console.log('Token refresh successful', {
+      accessTokenLength: responseData.access_token.length,
+      refreshTokenLength: responseData.refresh_token.length,
+      expiresIn: responseData.expires_in,
+    });
+    return responseData;
+
+  } catch (error) {
+    console.error('Token refresh error:', error);
+    throw error;
   }
-
-  return response.json();
 }
