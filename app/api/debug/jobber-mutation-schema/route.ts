@@ -16,66 +16,10 @@ export async function GET() {
 
     const accessToken = await getValidAccessToken();
 
-    // Full introspection query for mutations and input types
+    // Comprehensive introspection query for all required types
     const introspectionQuery = `
       query {
         __schema {
-          mutationType {
-            name
-            fields {
-              name
-              description
-              args {
-                name
-                description
-                type {
-                  kind
-                  name
-                  ofType {
-                    kind
-                    name
-                    ofType {
-                      kind
-                      name
-                    }
-                  }
-                }
-              }
-              type {
-                kind
-                name
-                ofType {
-                  kind
-                  name
-                }
-              }
-            }
-          }
-          queryType {
-            fields {
-              name
-              description
-              args {
-                name
-                type {
-                  kind
-                  name
-                  ofType {
-                    kind
-                    name
-                  }
-                }
-              }
-              type {
-                kind
-                name
-                ofType {
-                  kind
-                  name
-                }
-              }
-            }
-          }
           types {
             name
             kind
@@ -116,6 +60,10 @@ export async function GET() {
                 }
               }
             }
+            enumValues {
+              name
+              description
+            }
           }
         }
       }
@@ -149,34 +97,30 @@ export async function GET() {
     }
 
     const schema = result.data?.__schema;
-
-    // Extract only the mutations and types we need
-    const mutations = schema?.mutationType?.fields || [];
-    const queries = schema?.queryType?.fields || [];
     const types = schema?.types || [];
 
-    // Filter relevant mutations
-    const relevantMutations = mutations.filter((m: any) =>
-      ['clientCreate', 'requestCreate', 'clientUpdate'].includes(m.name)
-    );
+    // Filter all required types for complete schema documentation
+    const requiredTypeNames = [
+      'PhoneNumberCreateAttributes',
+      'EmailCreateAttributes',
+      'AddressAttributes',
+      'PropertyAttributes',
+      'ClientFilterAttributes',
+      'RequestDetailsInput',
+      'RequestCreateLineItemAttributes',
+      'AssessmentCreateInput',
+      'ClientCreateInput',
+      'RequestCreateInput',
+      'Client',
+      'Request',
+      'ClientTitle',
+      'RequestStatusTypeEnum',
+      'ClientCreatePayload',
+      'RequestCreatePayload',
+    ];
 
-    // Filter relevant input types
     const relevantTypes = types.filter((t: any) =>
-      [
-        'ClientCreateInput',
-        'ClientUpdateInput',
-        'RequestCreateInput',
-        'RequestUpdateInput',
-        'Client',
-        'Request',
-        'AddressInput',
-        'Address',
-      ].includes(t.name)
-    );
-
-    // Filter relevant queries
-    const relevantQueries = queries.filter((q: any) =>
-      ['clients', 'client', 'clientSearch'].includes(q.name)
+      requiredTypeNames.includes(t.name)
     );
 
     return NextResponse.json(
@@ -184,11 +128,9 @@ export async function GET() {
         success: true,
         apiVersion: '2025-04-16',
         timestamp: new Date().toISOString(),
-        mutations: relevantMutations,
-        queries: relevantQueries,
         types: relevantTypes,
-        instructions: 'Extract exact field definitions from "types" array for ClientCreateInput, RequestCreateInput, etc.',
-        deleteMe: 'This endpoint should be deleted after schema is documented',
+        note: 'Complete schema for all input types, objects, and enums needed for quote-to-lead integration',
+        deleteEndpoint: 'Remove this endpoint after schema documentation is complete',
       },
       { status: 200 }
     );
