@@ -58,14 +58,19 @@ export async function getValidAccessToken(): Promise<string> {
 }
 
 /**
- * Refresh Jobber access token and store new tokens
+ * Refresh Jobber access token and store new tokens atomically
  *
- * Implements Jobber's refresh token rotation:
- * - Request new access token using refresh token
- * - Jobber returns new access AND refresh token
- * - Save both new tokens
+ * CRITICAL: Implements Jobber's refresh token rotation
+ * - Request new access token using current refresh token
+ * - Jobber returns new access AND new refresh token
+ * - Old refresh token becomes invalid (especially for newer Jobber apps)
+ * - Atomically store both new tokens to replace old pair BEFORE any other operations
+ * - This ensures no API call uses an invalidated refresh token
  *
- * TODO: Implement with your storage backend
+ * Sequence:
+ * 1. Call refreshAccessToken() to get new tokens from Jobber
+ * 2. Immediately call storeJobberCredentials() to persist new pair
+ * 3. Return new access token for immediate use
  */
 export async function refreshJobberAccessToken(refreshToken: string): Promise<string> {
   const clientId = process.env.JOBBER_CLIENT_ID;
@@ -76,15 +81,16 @@ export async function refreshJobberAccessToken(refreshToken: string): Promise<st
   }
 
   try {
-    // Exchange refresh token for new tokens
+    // Exchange refresh token for new tokens from Jobber
     const newTokens = await refreshAccessToken(
       clientId,
       clientSecret,
       refreshToken
     );
 
-    // Store the new tokens (both access and refresh)
-    // Jobber rotates refresh tokens on each refresh
+    // ATOMIC: Store the new tokens (both access and refresh) immediately
+    // Jobber rotates refresh tokens on each refresh - old one is now invalid
+    // This overwrites the old pair in KV before any other API calls can happen
     await storeJobberCredentials({
       access_token: newTokens.access_token,
       refresh_token: newTokens.refresh_token,
@@ -92,7 +98,11 @@ export async function refreshJobberAccessToken(refreshToken: string): Promise<st
       token_type: newTokens.token_type,
     });
 
-    console.log('Jobber tokens refreshed and stored successfully');
+    console.log('Jobber tokens refreshed and stored atomically', {
+      newAccessTokenLength: newTokens.access_token.length,
+      newRefreshTokenLength: newTokens.refresh_token.length,
+      newExpirationIn: `${newTokens.expires_in} seconds`,
+    });
     return newTokens.access_token;
 
   } catch (error) {
@@ -131,15 +141,15 @@ async function retrieveJobberCredentials(): Promise<JobberCredentials | null> {
 
 /**
  * Store Jobber credentials in Vercel KV with encryption
- * Implements automatic refresh token rotation:
+ * Implements atomic refresh token rotation:
  * - When tokens are refreshed, immediately overwrite with newest values
- * - Old tokens become invalid
+ * - Old refresh token becomes invalid (especially for newer Jobber apps)
+ * - New pair is stored before any other API calls can happen
  *
- * IMPORTANT: TTL is set to 30 days to persist refresh token beyond access token lifetime
- * - Access tokens expire in ~60 minutes (Jobber standard)
- * - Refresh tokens are rotated on each refresh and stored with long TTL
- * - getValidAccessToken() auto-refreshes before access token expires
- * - New refresh token is stored when access token is refreshed
+ * CRITICAL: No TTL expiration set
+ * - Access tokens expire in ~60 minutes, tracked by expires_at timestamp
+ * - Refresh tokens are long-lived and persist until Jobber invalidation
+ * - Tokens remain stored indefinitely until explicit disconnect
  */
 async function storeJobberCredentials(credentials: JobberCredentials): Promise<void> {
   try {
@@ -151,20 +161,15 @@ async function storeJobberCredentials(credentials: JobberCredentials): Promise<v
       token_type: credentials.token_type,
     };
 
-    // Set long TTL (30 days) so refresh token persists across many access token refreshes
-    // This allows the token to be refreshed repeatedly without re-authorization
-    const ttlSeconds = 30 * 24 * 60 * 60; // 30 days in seconds
+    // Store persistently in KV without TTL expiration
+    // Atomically overwrites previous tokens (implements refresh token rotation)
+    // NO TTL SET - tokens persist until explicit disconnect or Jobber invalidation
+    await kv.set('jobber:tokens', JSON.stringify(encryptedCredentials));
 
-    // Store in KV with automatic expiration after 30 days
-    // This overwrites any previous tokens (implements refresh token rotation)
-    await kv.set('jobber:tokens', JSON.stringify(encryptedCredentials), {
-      ex: ttlSeconds,
-    });
-
-    console.log('Jobber credentials stored/updated securely in KV', {
-      ttlDays: 30,
+    console.log('Jobber credentials stored/updated persistently in KV', {
       accessTokenExpiresAt: new Date(credentials.expires_at).toISOString(),
-      kvExpirationDate: new Date(Date.now() + ttlSeconds * 1000).toISOString(),
+      storageType: 'persistent (no TTL)',
+      rotationBehavior: 'atomic overwrite with new pair',
     });
   } catch (error) {
     console.error('Error storing Jobber credentials:', error);
