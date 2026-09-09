@@ -13,40 +13,7 @@ import { makeJobberGraphQLRequest, QUERY_GET_ACCOUNT } from '@/lib/jobberGraphQL
  */
 export async function GET() {
   try {
-    // Log KV environment diagnostics
-    const kvUrl = process.env.KV_REST_API_URL;
-    const kvToken = process.env.KV_REST_API_TOKEN;
-    console.log('Verify endpoint KV environment check', {
-      kvRestApiUrlExists: !!kvUrl,
-      kvRestApiUrlPrefix: kvUrl ? kvUrl.substring(0, 30) : 'NOT_SET',
-      kvRestApiTokenExists: !!kvToken,
-      kvRestApiTokenLength: kvToken ? kvToken.length : 0,
-    });
-
-    console.log('Starting Jobber API verification...');
-
-    // DIAGNOSTIC: Check KV directly before calling getValidAccessToken
-    console.log('Performing direct KV diagnostics using unified serializer...');
-    const kvDirect = await kvGetParsed<{
-      access_token: string;
-      refresh_token: string;
-      expires_at: number;
-      token_type: string;
-    }>('jobber:tokens');
-
-    if (!kvDirect) {
-      console.error('CRITICAL: KV key does not exist or cannot be parsed', {
-        kvKey: 'jobber:tokens',
-      });
-    } else {
-      console.log('KV key exists and is readable', {
-        kvKey: 'jobber:tokens',
-        hasAccessTokenField: !!kvDirect.access_token,
-        hasRefreshTokenField: !!kvDirect.refresh_token,
-        hasExpiresAtField: !!kvDirect.expires_at,
-        hasTokenTypeField: !!kvDirect.token_type,
-      });
-    }
+    console.log('Verifying Jobber API connection...');
 
     // Get valid access token (will auto-refresh if within 5 minutes of expiration)
     let accessToken;
@@ -66,17 +33,13 @@ export async function GET() {
     }
 
     // Make GraphQL query using centralized helper
-    // This ensures consistent API version and headers
-    console.log('Sending GraphQL query to Jobber API...');
-
     const graphQLResult = await makeJobberGraphQLRequest(accessToken, {
       query: QUERY_GET_ACCOUNT,
     });
 
     if (!graphQLResult.success) {
-      console.error('Jobber GraphQL request failed:', {
+      console.error('Jobber verification failed:', {
         error: graphQLResult.error,
-        details: graphQLResult.details,
       });
 
       return NextResponse.json(
@@ -89,46 +52,14 @@ export async function GET() {
       );
     }
 
-    const graphQLData = graphQLResult.data;
-
-    // Diagnostic logging of GraphQL response structure
-    console.log('Verify: GraphQL response structure', {
-      graphQLDataExists: !!graphQLData,
-      graphQLDataType: typeof graphQLData,
-      graphQLDataKeys: graphQLData ? Object.keys(graphQLData) : null,
-      graphQLDataIsNull: graphQLData === null,
-      graphQLDataIsUndefined: graphQLData === undefined,
-    });
-
-    if (graphQLData) {
-      console.log('Verify: GraphQL data content (first 300 chars)', {
-        dataContent: JSON.stringify(graphQLData).substring(0, 300),
-      });
-    }
-
-    // Extract account info from successful response
-    const accountData = graphQLData?.account;
-
-    console.log('Verify: Account extraction', {
-      hasAccount: !!accountData,
-      accountType: typeof accountData,
-      accountKeys: accountData ? Object.keys(accountData) : null,
-      accountId: accountData?.id,
-      accountName: accountData?.name,
-    });
+    const accountData = graphQLResult.data?.account;
 
     if (!accountData) {
-      console.error('Jobber API returned no account data', {
-        graphQLDataStructure: graphQLData ? Object.keys(graphQLData) : 'null/undefined',
-        fullResponse: JSON.stringify(graphQLResult, null, 2).substring(0, 500),
-      });
+      console.error('Jobber verification: No account data returned');
       return NextResponse.json(
         {
           success: false,
           error: 'No account data returned from Jobber',
-          diagnostics: {
-            graphQLDataKeys: graphQLData ? Object.keys(graphQLData) : 'null/undefined',
-          },
         },
         { status: 500 }
       );

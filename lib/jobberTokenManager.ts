@@ -43,10 +43,7 @@ export async function getValidAccessToken(): Promise<string> {
     const timeUntilExpiry = credentials.expires_at - now;
 
     if (timeUntilExpiry < TOKEN_REFRESH_THRESHOLD) {
-      console.log('Access token expiring soon, refreshing...', {
-        timeUntilExpirySeconds: Math.floor(timeUntilExpiry / 1000),
-        refreshThresholdSeconds: TOKEN_REFRESH_THRESHOLD / 1000,
-      });
+      console.log('Refreshing Jobber access token (expires soon)');
       return await refreshJobberAccessToken(credentials.refresh_token);
     }
 
@@ -81,16 +78,13 @@ export async function refreshJobberAccessToken(refreshToken: string): Promise<st
   }
 
   try {
-    // Exchange refresh token for new tokens from Jobber
     const newTokens = await refreshAccessToken(
       clientId,
       clientSecret,
       refreshToken
     );
 
-    // ATOMIC: Store the new tokens (both access and refresh) immediately
-    // Jobber rotates refresh tokens on each refresh - old one is now invalid
-    // This overwrites the old pair in KV before any other API calls can happen
+    // Atomically store new tokens (refresh token rotation)
     await storeJobberCredentials({
       access_token: newTokens.access_token,
       refresh_token: newTokens.refresh_token,
@@ -98,28 +92,20 @@ export async function refreshJobberAccessToken(refreshToken: string): Promise<st
       token_type: newTokens.token_type,
     });
 
-    console.log('Jobber tokens refreshed and stored atomically', {
-      newAccessTokenLength: newTokens.access_token.length,
-      newRefreshTokenLength: newTokens.refresh_token.length,
-      newExpirationIn: `${newTokens.expires_in} seconds`,
-    });
+    console.log('Jobber access token refreshed');
     return newTokens.access_token;
 
   } catch (error) {
-    console.error('Failed to refresh Jobber access token:', error);
+    console.error('Failed to refresh Jobber access token:', String(error));
     throw error;
   }
 }
 
 /**
  * Retrieve stored Jobber credentials from Vercel KV
- * Uses unified serializer that handles both string and auto-deserialized object returns
  */
 async function retrieveJobberCredentials(): Promise<JobberCredentials | null> {
   try {
-    console.log('Attempting to retrieve Jobber credentials from KV key: jobber:tokens');
-
-    // Use unified serializer that handles both string and object returns from kv.get()
     const parsed = await kvGetParsed<{
       access_token: string;
       refresh_token: string;
@@ -128,21 +114,9 @@ async function retrieveJobberCredentials(): Promise<JobberCredentials | null> {
     }>('jobber:tokens');
 
     if (!parsed) {
-      console.warn('Failed to retrieve/parse Jobber credentials from KV', {
-        kvKey: 'jobber:tokens',
-      });
       return null;
     }
 
-    console.log('Successfully retrieved and parsed data from KV', {
-      kvKey: 'jobber:tokens',
-      hasAccessToken: !!parsed.access_token,
-      hasRefreshToken: !!parsed.refresh_token,
-      hasExpiresAt: !!parsed.expires_at,
-      hasTokenType: !!parsed.token_type,
-    });
-
-    // Decrypt the tokens
     try {
       const credentials: JobberCredentials = {
         access_token: decrypt(parsed.access_token),
@@ -151,47 +125,24 @@ async function retrieveJobberCredentials(): Promise<JobberCredentials | null> {
         token_type: parsed.token_type,
       };
 
-      console.log('Successfully decrypted Jobber credentials', {
-        accessTokenLength: credentials.access_token.length,
-        refreshTokenLength: credentials.refresh_token.length,
-        expiresAt: new Date(credentials.expires_at).toISOString(),
-      });
-
       return credentials;
     } catch (decryptError) {
-      console.error('Failed to decrypt Jobber credentials:', {
-        error: String(decryptError),
-        hasAccessTokenField: !!parsed.access_token,
-        hasRefreshTokenField: !!parsed.refresh_token,
-      });
+      console.error('Failed to decrypt Jobber credentials:', String(decryptError));
       return null;
     }
   } catch (error) {
-    console.error('Unexpected error retrieving Jobber credentials:', {
-      error: String(error),
-      errorType: error instanceof Error ? error.name : typeof error,
-    });
+    console.error('Error retrieving Jobber credentials:', String(error));
     return null;
   }
 }
 
 /**
  * Store Jobber credentials in Vercel KV with encryption
- * Implements atomic refresh token rotation:
- * - When tokens are refreshed, immediately overwrite with newest values
- * - Old refresh token becomes invalid (especially for newer Jobber apps)
- * - New pair is stored before any other API calls can happen
- *
- * CRITICAL: No TTL expiration set
- * - Access tokens expire in ~60 minutes, tracked by expires_at timestamp
- * - Refresh tokens are long-lived and persist until Jobber invalidation
- * - Tokens remain stored indefinitely until explicit disconnect
- *
- * Uses unified serializer to handle @vercel/kv auto-deserialization behavior
+ * Implements atomic refresh token rotation - new tokens replace old pair immediately
+ * No TTL set - tokens persist until explicit disconnect or Jobber invalidation
  */
 async function storeJobberCredentials(credentials: JobberCredentials): Promise<void> {
   try {
-    // Encrypt sensitive tokens
     const encryptedCredentials = {
       access_token: encrypt(credentials.access_token),
       refresh_token: encrypt(credentials.refresh_token),
@@ -199,17 +150,10 @@ async function storeJobberCredentials(credentials: JobberCredentials): Promise<v
       token_type: credentials.token_type,
     };
 
-    // Use unified serializer to store credentials
-    // Works with both auto-deserializing and non-deserializing KV clients
     await kvSetSerialized('jobber:tokens', encryptedCredentials);
-
-    console.log('Jobber credentials stored/updated persistently in KV', {
-      accessTokenExpiresAt: new Date(credentials.expires_at).toISOString(),
-      storageType: 'persistent (no TTL)',
-      rotationBehavior: 'atomic overwrite with new pair',
-    });
+    console.log('Jobber credentials stored securely');
   } catch (error) {
-    console.error('Error storing Jobber credentials:', error);
+    console.error('Error storing Jobber credentials:', String(error));
     throw error;
   }
 }

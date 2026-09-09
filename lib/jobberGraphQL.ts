@@ -42,14 +42,6 @@ export async function makeJobberGraphQLRequest(
       ...(variables && { variables }),
     };
 
-    console.log('Jobber GraphQL request:', {
-      endpoint: JOBBER_GRAPHQL_ENDPOINT,
-      apiVersion: JOBBER_GRAPHQL_VERSION,
-      method: 'POST',
-      hasAccessToken: !!accessToken,
-      queryLength: query.length,
-    });
-
     const response = await fetch(JOBBER_GRAPHQL_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -60,16 +52,8 @@ export async function makeJobberGraphQLRequest(
       body: JSON.stringify(requestBody),
     });
 
-    // Log response metadata
+    // Get response metadata
     const contentType = response.headers.get('content-type');
-    const responseUrl = response.url;
-
-    console.log('Jobber GraphQL response:', {
-      status: response.status,
-      statusText: response.statusText,
-      contentType: contentType,
-      responseUrl: responseUrl,
-    });
 
     // Read response body safely
     let responseBodyText: string;
@@ -86,14 +70,10 @@ export async function makeJobberGraphQLRequest(
 
     // Validate content type
     if (!contentType?.includes('application/json')) {
-      console.error('Jobber returned non-JSON response:', {
-        contentType,
-        bodyPreview: responseBodyText.substring(0, 100),
-      });
+      console.error('Jobber API: Non-JSON response', { status: response.status, contentType });
       return {
         success: false,
         error: `Expected JSON, got ${contentType}`,
-        details: responseBodyText.substring(0, 100),
       };
     }
 
@@ -116,10 +96,7 @@ export async function makeJobberGraphQLRequest(
         .map((e) => e.message)
         .join('; ');
 
-      console.error('Jobber GraphQL error:', {
-        status: response.status,
-        errors: errorMessages,
-      });
+      console.error('Jobber GraphQL error:', { errors: errorMessages });
 
       return {
         success: false,
@@ -133,7 +110,6 @@ export async function makeJobberGraphQLRequest(
       console.error('Jobber API HTTP error:', {
         status: response.status,
         statusText: response.statusText,
-        data: graphQLData,
       });
 
       return {
@@ -142,13 +118,6 @@ export async function makeJobberGraphQLRequest(
         details: graphQLData.errors?.[0]?.message || 'Unknown error',
       };
     }
-
-    // Log response structure for diagnostics
-    console.log('Jobber GraphQL request successful', {
-      hasData: !!graphQLData.data,
-      dataKeys: graphQLData.data ? Object.keys(graphQLData.data) : null,
-      dataStructure: JSON.stringify(graphQLData.data, null, 2).substring(0, 200),
-    });
 
     return {
       success: true,

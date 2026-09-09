@@ -17,16 +17,6 @@ import { kvSetSerialized, kvGetParsed } from '@/lib/kvSerializer';
  */
 export async function GET(request: NextRequest) {
   try {
-    // Log KV environment diagnostics
-    const kvUrl = process.env.KV_REST_API_URL;
-    const kvToken = process.env.KV_REST_API_TOKEN;
-    console.log('Callback route KV environment check', {
-      kvRestApiUrlExists: !!kvUrl,
-      kvRestApiUrlPrefix: kvUrl ? kvUrl.substring(0, 30) : 'NOT_SET',
-      kvRestApiTokenExists: !!kvToken,
-      kvRestApiTokenLength: kvToken ? kvToken.length : 0,
-    });
-
     const searchParams = request.nextUrl.searchParams;
     const code = searchParams.get('code');
     const state = searchParams.get('state');
@@ -215,9 +205,6 @@ interface JobberTokens {
 
 async function storeJobberTokens(tokens: JobberTokens): Promise<void> {
   try {
-    console.log('Encrypting Jobber tokens before storage...');
-
-    // Encrypt tokens before storage
     const encryptedTokens = {
       access_token: encrypt(tokens.access_token),
       refresh_token: encrypt(tokens.refresh_token),
@@ -225,47 +212,10 @@ async function storeJobberTokens(tokens: JobberTokens): Promise<void> {
       token_type: tokens.token_type,
     };
 
-    console.log('Encrypted tokens ready for storage', {
-      accessTokenEncryptedLength: encryptedTokens.access_token.length,
-      refreshTokenEncryptedLength: encryptedTokens.refresh_token.length,
-      expiresAt: new Date(tokens.expires_at).toISOString(),
-      kvKey: 'jobber:tokens',
-    });
-
-    // Use unified serializer to store tokens
-    // Handles both auto-deserializing and non-deserializing KV clients
-    console.log('Storing Jobber tokens using unified KV serializer...');
     await kvSetSerialized('jobber:tokens', encryptedTokens);
-
-    // IMMEDIATE VERIFICATION: Check if the key can be retrieved right after set
-    console.log('Performing immediate KV retrieval verification...');
-    const immediateVerify = await kvGetParsed<typeof encryptedTokens>('jobber:tokens');
-
-    if (!immediateVerify) {
-      console.error('CRITICAL: kvGetParsed() returned null immediately after kvSetSerialized()', {
-        kvKey: 'jobber:tokens',
-      });
-    } else {
-      console.log('Immediate verification: Key exists and is readable', {
-        kvKey: 'jobber:tokens',
-        hasAccessTokenField: !!immediateVerify.access_token,
-        hasRefreshTokenField: !!immediateVerify.refresh_token,
-        hasExpiresAtField: !!immediateVerify.expires_at,
-        hasTokenTypeField: !!immediateVerify.token_type,
-      });
-    }
-
-    console.log('Jobber tokens stored persistently in KV', {
-      accessTokenExpiresAt: new Date(tokens.expires_at).toISOString(),
-      storageType: 'persistent (no TTL)',
-      refreshTokenRotation: 'enabled - new tokens replace old pair atomically',
-    });
+    console.log('Jobber tokens stored securely');
   } catch (error) {
-    console.error('Failed to store Jobber tokens:', {
-      error: String(error),
-      errorType: error instanceof Error ? error.name : typeof error,
-      kvKey: 'jobber:tokens',
-    });
+    console.error('Failed to store Jobber tokens:', String(error));
     throw new Error('Failed to store authentication tokens');
   }
 }
