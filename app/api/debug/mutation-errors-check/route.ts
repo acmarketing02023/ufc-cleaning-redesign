@@ -10,7 +10,7 @@ export async function GET() {
   try {
     const accessToken = await getValidAccessToken();
 
-    // Try to find the error type by attempting a mutation that will fail
+    // Try with only message field
     const testMutation = `
       mutation {
         clientCreate(input: {
@@ -21,9 +21,6 @@ export async function GET() {
           }
           userErrors {
             message
-            field
-            code
-            type
           }
         }
       }
