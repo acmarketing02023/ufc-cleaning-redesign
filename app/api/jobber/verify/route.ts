@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
 import { getValidAccessToken } from '@/lib/jobberTokenManager';
+import { kvGetParsed } from '@/lib/kvSerializer';
 
 /**
  * Verify Jobber API Connection
@@ -25,34 +25,26 @@ export async function GET() {
     console.log('Starting Jobber API verification...');
 
     // DIAGNOSTIC: Check KV directly before calling getValidAccessToken
-    console.log('Performing direct KV diagnostics...');
-    const kvDirect = await kv.get('jobber:tokens');
+    console.log('Performing direct KV diagnostics using unified serializer...');
+    const kvDirect = await kvGetParsed<{
+      access_token: string;
+      refresh_token: string;
+      expires_at: number;
+      token_type: string;
+    }>('jobber:tokens');
 
-    if (kvDirect === null || kvDirect === undefined) {
-      console.error('CRITICAL: KV key does not exist', {
+    if (!kvDirect) {
+      console.error('CRITICAL: KV key does not exist or cannot be parsed', {
         kvKey: 'jobber:tokens',
-        kvGetResult: kvDirect,
-        kvGetResultType: typeof kvDirect,
       });
     } else {
-      try {
-        const directParsed = JSON.parse(kvDirect as string);
-        console.log('KV key exists and is parseable', {
-          kvKey: 'jobber:tokens',
-          valueType: typeof kvDirect,
-          valueLengthBytes: String(kvDirect).length,
-          hasAccessTokenField: !!directParsed.access_token,
-          hasRefreshTokenField: !!directParsed.refresh_token,
-          hasExpiresAtField: !!directParsed.expires_at,
-          hasTokenTypeField: !!directParsed.token_type,
-        });
-      } catch (directParseError) {
-        console.error('KV value exists but JSON parsing failed', {
-          error: String(directParseError),
-          valueType: typeof kvDirect,
-          valueLengthBytes: String(kvDirect).length,
-        });
-      }
+      console.log('KV key exists and is readable', {
+        kvKey: 'jobber:tokens',
+        hasAccessTokenField: !!kvDirect.access_token,
+        hasRefreshTokenField: !!kvDirect.refresh_token,
+        hasExpiresAtField: !!kvDirect.expires_at,
+        hasTokenTypeField: !!kvDirect.token_type,
+      });
     }
 
     // Get valid access token (will auto-refresh if within 5 minutes of expiration)

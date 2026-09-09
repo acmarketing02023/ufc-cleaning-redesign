@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import { exchangeCodeForTokens, validateState } from '@/lib/oauth';
 import { encrypt } from '@/lib/encryption';
+import { kvSetSerialized, kvGetParsed } from '@/lib/kvSerializer';
 
 /**
  * OAuth Callback Route for Jobber
@@ -231,59 +232,30 @@ async function storeJobberTokens(tokens: JobberTokens): Promise<void> {
       kvKey: 'jobber:tokens',
     });
 
-    // Store refresh token persistently in KV without expiration
-    // - Access tokens expire in ~60 minutes (Jobber standard), tracked by expires_at timestamp
-    // - Refresh tokens are long-lived and should persist until Jobber invalidates them
-    // - On each refresh, Jobber rotates the refresh token (invalidates the old one immediately for newer apps)
-    // - New tokens are atomically stored to replace the old pair before any API calls
-    // NO TTL SET - tokens persist until explicit disconnect or Jobber invalidation
-    const jsonString = JSON.stringify(encryptedTokens);
-    console.log('Calling kv.set() for jobber:tokens key', {
-      kvKey: 'jobber:tokens',
-      jsonLength: jsonString.length,
-      ttlSet: false,
-    });
+    // Use unified serializer to store tokens
+    // Handles both auto-deserializing and non-deserializing KV clients
+    console.log('Storing Jobber tokens using unified KV serializer...');
+    await kvSetSerialized('jobber:tokens', encryptedTokens);
 
-    // Call kv.set with explicit options (empty object = no TTL/expiration)
-    const setResult = await kv.set('jobber:tokens', jsonString, {});
-    console.log('kv.set() call completed', {
-      kvSetResult: setResult,
-      kvKey: 'jobber:tokens',
-      dataLengthBytes: jsonString.length,
-    });
-
-    // IMMEDIATE VERIFICATION: Check if the key exists right after set
+    // IMMEDIATE VERIFICATION: Check if the key can be retrieved right after set
     console.log('Performing immediate KV retrieval verification...');
-    const immediateVerify = await kv.get('jobber:tokens');
+    const immediateVerify = await kvGetParsed<typeof encryptedTokens>('jobber:tokens');
 
-    if (immediateVerify === null || immediateVerify === undefined) {
-      console.error('CRITICAL: kv.get() returned null/undefined immediately after kv.set()', {
+    if (!immediateVerify) {
+      console.error('CRITICAL: kvGetParsed() returned null immediately after kvSetSerialized()', {
         kvKey: 'jobber:tokens',
-        setResultWas: setResult,
-        immediateGetResult: immediateVerify,
       });
     } else {
-      try {
-        const verifyParsed = JSON.parse(immediateVerify as string);
-        console.log('Immediate verification: Key exists and is parseable', {
-          kvKey: 'jobber:tokens',
-          valueType: typeof immediateVerify,
-          valueLengthBytes: String(immediateVerify).length,
-          hasAccessTokenField: !!verifyParsed.access_token,
-          hasRefreshTokenField: !!verifyParsed.refresh_token,
-          hasExpiresAtField: !!verifyParsed.expires_at,
-          hasTokenTypeField: !!verifyParsed.token_type,
-        });
-      } catch (verifyParseError) {
-        console.error('Immediate verification: JSON parsing failed', {
-          error: String(verifyParseError),
-          valueType: typeof immediateVerify,
-        });
-      }
+      console.log('Immediate verification: Key exists and is readable', {
+        kvKey: 'jobber:tokens',
+        hasAccessTokenField: !!immediateVerify.access_token,
+        hasRefreshTokenField: !!immediateVerify.refresh_token,
+        hasExpiresAtField: !!immediateVerify.expires_at,
+        hasTokenTypeField: !!immediateVerify.token_type,
+      });
     }
 
     console.log('Jobber tokens stored persistently in KV', {
-      kvSetResult: setResult,
       accessTokenExpiresAt: new Date(tokens.expires_at).toISOString(),
       storageType: 'persistent (no TTL)',
       refreshTokenRotation: 'enabled - new tokens replace old pair atomically',

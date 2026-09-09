@@ -1,5 +1,5 @@
 import { refreshAccessToken } from './oauth';
-import { kv } from '@vercel/kv';
+import { kvGetParsed, kvSetSerialized } from './kvSerializer';
 import { encrypt, decrypt } from './encryption';
 
 export interface JobberCredentials {
@@ -113,44 +113,34 @@ export async function refreshJobberAccessToken(refreshToken: string): Promise<st
 
 /**
  * Retrieve stored Jobber credentials from Vercel KV
+ * Uses unified serializer that handles both string and auto-deserialized object returns
  */
 async function retrieveJobberCredentials(): Promise<JobberCredentials | null> {
   try {
     console.log('Attempting to retrieve Jobber credentials from KV key: jobber:tokens');
 
-    const stored = await kv.get('jobber:tokens');
+    // Use unified serializer that handles both string and object returns from kv.get()
+    const parsed = await kvGetParsed<{
+      access_token: string;
+      refresh_token: string;
+      expires_at: number;
+      token_type: string;
+    }>('jobber:tokens');
 
-    if (!stored) {
-      console.warn('KV get returned null/undefined for jobber:tokens key', {
+    if (!parsed) {
+      console.warn('Failed to retrieve/parse Jobber credentials from KV', {
         kvKey: 'jobber:tokens',
-        storedValue: stored,
-        storedType: typeof stored,
       });
       return null;
     }
 
-    console.log('Successfully retrieved data from KV', {
+    console.log('Successfully retrieved and parsed data from KV', {
       kvKey: 'jobber:tokens',
-      dataType: typeof stored,
-      dataLength: typeof stored === 'string' ? stored.length : 'N/A',
+      hasAccessToken: !!parsed.access_token,
+      hasRefreshToken: !!parsed.refresh_token,
+      hasExpiresAt: !!parsed.expires_at,
+      hasTokenType: !!parsed.token_type,
     });
-
-    let parsed;
-    try {
-      parsed = JSON.parse(stored as string);
-      console.log('Successfully parsed JSON from stored data', {
-        hasAccessToken: !!parsed.access_token,
-        hasRefreshToken: !!parsed.refresh_token,
-        hasExpiresAt: !!parsed.expires_at,
-        hasTokenType: !!parsed.token_type,
-      });
-    } catch (parseError) {
-      console.error('Failed to parse JSON from stored KV data:', {
-        error: String(parseError),
-        dataPreview: String(stored).substring(0, 100),
-      });
-      return null;
-    }
 
     // Decrypt the tokens
     try {
@@ -196,6 +186,8 @@ async function retrieveJobberCredentials(): Promise<JobberCredentials | null> {
  * - Access tokens expire in ~60 minutes, tracked by expires_at timestamp
  * - Refresh tokens are long-lived and persist until Jobber invalidation
  * - Tokens remain stored indefinitely until explicit disconnect
+ *
+ * Uses unified serializer to handle @vercel/kv auto-deserialization behavior
  */
 async function storeJobberCredentials(credentials: JobberCredentials): Promise<void> {
   try {
@@ -207,11 +199,9 @@ async function storeJobberCredentials(credentials: JobberCredentials): Promise<v
       token_type: credentials.token_type,
     };
 
-    // Store persistently in KV without TTL expiration
-    // Atomically overwrites previous tokens (implements refresh token rotation)
-    // NO TTL SET - tokens persist until explicit disconnect or Jobber invalidation
-    // Explicit empty options object ensures no automatic expiration
-    await kv.set('jobber:tokens', JSON.stringify(encryptedCredentials), {});
+    // Use unified serializer to store credentials
+    // Works with both auto-deserializing and non-deserializing KV clients
+    await kvSetSerialized('jobber:tokens', encryptedCredentials);
 
     console.log('Jobber credentials stored/updated persistently in KV', {
       accessTokenExpiresAt: new Date(credentials.expires_at).toISOString(),
