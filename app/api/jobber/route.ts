@@ -468,113 +468,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 3: Find or create Jobber client (with exact-match duplicate prevention)
-    console.log('Step 3: Looking up existing client');
-    const clientLookup = await findExistingClient(
+    // Step 3: Create new Jobber client and property
+    // NOTE: Deduplication/search logic is bypassed to avoid throttling.
+    // This creates a fresh client for every submission.
+    // TODO: Restore client deduplication after Jobber search is more efficient.
+    console.log('Step 3: Creating new Jobber client and property');
+
+    const newClientResult = await createClient(
       accessToken,
+      formData.firstName,
+      formData.lastName,
       formData.email,
-      formData.phone
+      formData.phone,
+      formData.address
     );
 
-    // If lookup itself failed, return error and preserve lead
-    if (clientLookup.status === 'error') {
-      console.error('Client lookup failed:', clientLookup.error);
+    if (!newClientResult) {
       if (submissionId) {
         await markLeadSyncFailed(
           submissionId,
-          `Client lookup failed: ${clientLookup.error}`
+          'Failed to create new client'
         ).catch((e) => console.error('Failed to mark sync failed:', e));
       }
       return NextResponse.json(
         {
           success: false,
-          error: 'Failed to query existing clients',
-          details: clientLookup.error,
+          error: 'Failed to create new client',
           submissionId: submissionId,
         },
         { status: 500 }
       );
     }
 
-    let clientId: string;
-    let propertyId: string | null;
-
-    if (clientLookup.status === 'found') {
-      console.log(`Found existing client: ${clientLookup.clientId}`);
-      clientId = clientLookup.clientId;
-
-      // Check if address matches existing property
-      propertyId = findMatchingProperty(
-        formData.address,
-        clientLookup.properties
-      );
-
-      if (!propertyId) {
-        console.log('Creating new property for existing client');
-        propertyId = await createProperty(
-          accessToken,
-          clientId,
-          formData.address
-        );
-
-        if (!propertyId) {
-          if (submissionId) {
-            await markLeadSyncFailed(
-              submissionId,
-              'Failed to create property'
-            ).catch((e) => console.error('Failed to mark sync failed:', e));
-          }
-          return NextResponse.json(
-            {
-              success: false,
-              error: 'Failed to create property for existing client',
-              submissionId: submissionId,
-            },
-            { status: 500 }
-          );
-        }
-        console.log(`Created new property: ${propertyId}`);
-      } else {
-        console.log(`Using existing property: ${propertyId}`);
-      }
-    } else {
-      // clientLookup.status === 'not_found'
-      console.log('Creating new client with property');
-      const newClientResult = await createClient(
-        accessToken,
-        formData.firstName,
-        formData.lastName,
-        formData.email,
-        formData.phone,
-        formData.address
-      );
-
-      if (!newClientResult) {
-        if (submissionId) {
-          await markLeadSyncFailed(
-            submissionId,
-            'Failed to create new client'
-          ).catch((e) => console.error('Failed to mark sync failed:', e));
-        }
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Failed to create new client',
-            submissionId: submissionId,
-          },
-          { status: 500 }
-        );
-      }
-
-      clientId = newClientResult.clientId;
-      propertyId = newClientResult.propertyId;
-      console.log(`Created new client: ${clientId}, property: ${propertyId}`);
-
-      // Cache the new client for future lookups
-      await cacheNewClient(formData.email, formData.phone, clientId).catch(
-        (e) => console.error('Failed to cache new client:', e)
-      );
-    }
+    const clientId = newClientResult.clientId;
+    const propertyId = newClientResult.propertyId;
+    console.log(`Created new client: ${clientId}, property: ${propertyId}`);
 
     // Step 4: Create Jobber Request
     console.log('Step 4: Creating Jobber Request');
