@@ -2,21 +2,78 @@
 
 import { useState } from "react";
 
+interface Message {
+  type: "customer" | "agent";
+  text: string;
+}
+
 export default function LiveChat() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    { type: "agent", text: "Hi there! How can we help you today?" },
+  const [messages, setMessages] = useState<Message[]>([
+    { type: "agent", text: "Hi there! 👋 How can we help you today?" },
   ]);
   const [inputValue, setInputValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSendMessage = () => {
-    if (inputValue.trim()) {
+  const handleSendMessage = async () => {
+    if (!inputValue.trim() || isLoading) return;
+
+    const userMessage = inputValue.trim();
+
+    // Add user message to chat
+    const updatedMessages: Message[] = [
+      ...messages,
+      { type: "customer", text: userMessage },
+    ];
+    setMessages(updatedMessages);
+    setInputValue("");
+    setIsLoading(true);
+
+    try {
+      // Call the chatbot API
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: userMessage,
+          conversationHistory: updatedMessages
+            .filter((m) => m.type !== "customer" || m.text !== userMessage)
+            .map((m) => ({
+              role: m.type === "customer" ? "user" : "assistant",
+              content: m.text,
+            })),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.message) {
+        setMessages([
+          ...updatedMessages,
+          { type: "agent", text: data.message },
+        ]);
+      } else {
+        setMessages([
+          ...updatedMessages,
+          {
+            type: "agent",
+            text: "I had trouble processing that. Please call us at (214) 218-2921!",
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error("Chat error:", error);
       setMessages([
-        ...messages,
-        { type: "customer", text: inputValue },
-        { type: "agent", text: "Thanks for your message! A team member will respond shortly." },
+        ...updatedMessages,
+        {
+          type: "agent",
+          text: "Sorry, I'm having trouble connecting. Please call (214) 218-2921 for assistance!",
+        },
       ]);
-      setInputValue("");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -52,10 +109,21 @@ export default function LiveChat() {
                       : "bg-primary-600 text-white rounded-bl-none border border-accent-500"
                   }`}
                 >
-                  <p className="text-sm">{msg.text}</p>
+                  <p className="text-sm whitespace-wrap break-words">{msg.text}</p>
                 </div>
               </div>
             ))}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-primary-600 text-white rounded-bl-none border border-accent-500 px-4 py-2 rounded-lg">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-accent-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-accent-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-2 h-2 bg-accent-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Input */}
@@ -66,14 +134,16 @@ export default function LiveChat() {
                 placeholder="Type your message..."
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                className="flex-1 border-2 border-accent-500 rounded px-3 py-2 text-sm bg-primary-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent-500"
+                onKeyPress={(e) => e.key === "Enter" && !isLoading && handleSendMessage()}
+                disabled={isLoading}
+                className="flex-1 border-2 border-accent-500 rounded px-3 py-2 text-sm bg-primary-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent-500 disabled:opacity-50"
               />
               <button
                 onClick={handleSendMessage}
-                className="bg-accent-500 text-primary-900 px-4 py-2 rounded hover:bg-accent-400 transition font-bold"
+                disabled={isLoading || !inputValue.trim()}
+                className="bg-accent-500 text-primary-900 px-4 py-2 rounded hover:bg-accent-400 transition font-bold disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Send
+                {isLoading ? "..." : "Send"}
               </button>
             </div>
           </div>
