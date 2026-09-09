@@ -143,7 +143,12 @@ export async function makeJobberGraphQLRequest(
       };
     }
 
-    console.log('Jobber GraphQL request successful');
+    // Log response structure for diagnostics
+    console.log('Jobber GraphQL request successful', {
+      hasData: !!graphQLData.data,
+      dataKeys: graphQLData.data ? Object.keys(graphQLData.data) : null,
+      dataStructure: JSON.stringify(graphQLData.data, null, 2).substring(0, 200),
+    });
 
     return {
       success: true,

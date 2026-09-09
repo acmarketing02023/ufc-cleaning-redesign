@@ -91,15 +91,44 @@ export async function GET() {
 
     const graphQLData = graphQLResult.data;
 
+    // Diagnostic logging of GraphQL response structure
+    console.log('Verify: GraphQL response structure', {
+      graphQLDataExists: !!graphQLData,
+      graphQLDataType: typeof graphQLData,
+      graphQLDataKeys: graphQLData ? Object.keys(graphQLData) : null,
+      graphQLDataIsNull: graphQLData === null,
+      graphQLDataIsUndefined: graphQLData === undefined,
+    });
+
+    if (graphQLData) {
+      console.log('Verify: GraphQL data content (first 300 chars)', {
+        dataContent: JSON.stringify(graphQLData).substring(0, 300),
+      });
+    }
+
     // Extract account info from successful response
-    const accountData = graphQLData.data?.account;
+    const accountData = graphQLData?.account;
+
+    console.log('Verify: Account extraction', {
+      hasAccount: !!accountData,
+      accountType: typeof accountData,
+      accountKeys: accountData ? Object.keys(accountData) : null,
+      accountId: accountData?.id,
+      accountName: accountData?.name,
+    });
 
     if (!accountData) {
-      console.error('Jobber API returned no account data');
+      console.error('Jobber API returned no account data', {
+        graphQLDataStructure: graphQLData ? Object.keys(graphQLData) : 'null/undefined',
+        fullResponse: JSON.stringify(graphQLResult, null, 2).substring(0, 500),
+      });
       return NextResponse.json(
         {
           success: false,
           error: 'No account data returned from Jobber',
+          diagnostics: {
+            graphQLDataKeys: graphQLData ? Object.keys(graphQLData) : 'null/undefined',
+          },
         },
         { status: 500 }
       );
