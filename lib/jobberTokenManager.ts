@@ -116,25 +116,71 @@ export async function refreshJobberAccessToken(refreshToken: string): Promise<st
  */
 async function retrieveJobberCredentials(): Promise<JobberCredentials | null> {
   try {
+    console.log('Attempting to retrieve Jobber credentials from KV key: jobber:tokens');
+
     const stored = await kv.get('jobber:tokens');
 
     if (!stored) {
+      console.warn('KV get returned null/undefined for jobber:tokens key', {
+        kvKey: 'jobber:tokens',
+        storedValue: stored,
+        storedType: typeof stored,
+      });
       return null;
     }
 
-    const parsed = JSON.parse(stored as string);
+    console.log('Successfully retrieved data from KV', {
+      kvKey: 'jobber:tokens',
+      dataType: typeof stored,
+      dataLength: typeof stored === 'string' ? stored.length : 'N/A',
+    });
+
+    let parsed;
+    try {
+      parsed = JSON.parse(stored as string);
+      console.log('Successfully parsed JSON from stored data', {
+        hasAccessToken: !!parsed.access_token,
+        hasRefreshToken: !!parsed.refresh_token,
+        hasExpiresAt: !!parsed.expires_at,
+        hasTokenType: !!parsed.token_type,
+      });
+    } catch (parseError) {
+      console.error('Failed to parse JSON from stored KV data:', {
+        error: String(parseError),
+        dataPreview: String(stored).substring(0, 100),
+      });
+      return null;
+    }
 
     // Decrypt the tokens
-    const credentials: JobberCredentials = {
-      access_token: decrypt(parsed.access_token),
-      refresh_token: decrypt(parsed.refresh_token),
-      expires_at: parsed.expires_at,
-      token_type: parsed.token_type,
-    };
+    try {
+      const credentials: JobberCredentials = {
+        access_token: decrypt(parsed.access_token),
+        refresh_token: decrypt(parsed.refresh_token),
+        expires_at: parsed.expires_at,
+        token_type: parsed.token_type,
+      };
 
-    return credentials;
+      console.log('Successfully decrypted Jobber credentials', {
+        accessTokenLength: credentials.access_token.length,
+        refreshTokenLength: credentials.refresh_token.length,
+        expiresAt: new Date(credentials.expires_at).toISOString(),
+      });
+
+      return credentials;
+    } catch (decryptError) {
+      console.error('Failed to decrypt Jobber credentials:', {
+        error: String(decryptError),
+        hasAccessTokenField: !!parsed.access_token,
+        hasRefreshTokenField: !!parsed.refresh_token,
+      });
+      return null;
+    }
   } catch (error) {
-    console.error('Error retrieving Jobber credentials:', error);
+    console.error('Unexpected error retrieving Jobber credentials:', {
+      error: String(error),
+      errorType: error instanceof Error ? error.name : typeof error,
+    });
     return null;
   }
 }

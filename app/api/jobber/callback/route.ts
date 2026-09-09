@@ -204,6 +204,8 @@ interface JobberTokens {
 
 async function storeJobberTokens(tokens: JobberTokens): Promise<void> {
   try {
+    console.log('Encrypting Jobber tokens before storage...');
+
     // Encrypt tokens before storage
     const encryptedTokens = {
       access_token: encrypt(tokens.access_token),
@@ -212,21 +214,40 @@ async function storeJobberTokens(tokens: JobberTokens): Promise<void> {
       token_type: tokens.token_type,
     };
 
+    console.log('Encrypted tokens ready for storage', {
+      accessTokenEncryptedLength: encryptedTokens.access_token.length,
+      refreshTokenEncryptedLength: encryptedTokens.refresh_token.length,
+      expiresAt: new Date(tokens.expires_at).toISOString(),
+      kvKey: 'jobber:tokens',
+    });
+
     // Store refresh token persistently in KV without expiration
     // - Access tokens expire in ~60 minutes (Jobber standard), tracked by expires_at timestamp
     // - Refresh tokens are long-lived and should persist until Jobber invalidates them
     // - On each refresh, Jobber rotates the refresh token (invalidates the old one immediately for newer apps)
     // - New tokens are atomically stored to replace the old pair before any API calls
     // NO TTL SET - tokens persist until explicit disconnect or Jobber invalidation
-    await kv.set('jobber:tokens', JSON.stringify(encryptedTokens));
+    const jsonString = JSON.stringify(encryptedTokens);
+    console.log('Calling kv.set() for jobber:tokens key', {
+      kvKey: 'jobber:tokens',
+      jsonLength: jsonString.length,
+      ttlSet: false,
+    });
+
+    const result = await kv.set('jobber:tokens', jsonString);
 
     console.log('Jobber tokens stored persistently in KV', {
+      kvSetResult: result,
       accessTokenExpiresAt: new Date(tokens.expires_at).toISOString(),
-      storageType: 'persistent',
+      storageType: 'persistent (no TTL)',
       refreshTokenRotation: 'enabled - new tokens replace old pair atomically',
     });
   } catch (error) {
-    console.error('Failed to store Jobber tokens:', error);
+    console.error('Failed to store Jobber tokens:', {
+      error: String(error),
+      errorType: error instanceof Error ? error.name : typeof error,
+      kvKey: 'jobber:tokens',
+    });
     throw new Error('Failed to store authentication tokens');
   }
 }
