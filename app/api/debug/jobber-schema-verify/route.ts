@@ -86,21 +86,14 @@ export async function GET() {
     }
 
     const schema = result.data?.__schema;
-    const types = schema?.types || [];
+    const allTypes = schema?.types || [];
 
-    // Extract all Form-related types and key types
-    const relevantTypes = types.filter((t: any) =>
-      t.name?.includes('Form') ||
-      t.name === 'ClientFilterAttributes' ||
-      t.name === 'ClientsConnection' ||
-      t.name === 'ClientEdge' ||
-      t.name === 'Client'
-    );
-
+    // Return all types - full schema introspection
     return NextResponse.json(
       {
         success: true,
-        types: relevantTypes,
+        totalTypes: allTypes.length,
+        types: allTypes,
       },
       { status: 200 }
     );
