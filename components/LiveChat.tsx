@@ -1,24 +1,31 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 interface Message {
   type: "customer" | "agent";
   text: string;
+  quickReplies?: string[];
+  buttonText?: string;
+  buttonLink?: string;
 }
 
 export default function LiveChat() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { type: "agent", text: "Hi there! 👋 How can we help you today?" },
+    {
+      type: "agent",
+      text: "Hi there! 👋 How can we help you today?",
+      quickReplies: ["Our Services", "Get a Quote", "Service Areas", "Contact Us"],
+    },
   ]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim() || isLoading) return;
-
-    const userMessage = inputValue.trim();
+  const handleSendMessage = async (messageText?: string) => {
+    const userMessage = (messageText || inputValue).trim();
+    if (!userMessage || isLoading) return;
 
     // Add user message to chat
     const updatedMessages: Message[] = [
@@ -30,7 +37,7 @@ export default function LiveChat() {
     setIsLoading(true);
 
     try {
-      // Call the chatbot API
+      // Call the FAQ chatbot API (rule-based, no AI needed)
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
@@ -38,28 +45,34 @@ export default function LiveChat() {
         },
         body: JSON.stringify({
           message: userMessage,
-          conversationHistory: updatedMessages
-            .filter((m) => m.type !== "customer" || m.text !== userMessage)
-            .map((m) => ({
-              role: m.type === "customer" ? "user" : "assistant",
-              content: m.text,
-            })),
         }),
       });
 
       const data = await response.json();
 
-      if (data.success && data.message) {
-        setMessages([
-          ...updatedMessages,
-          { type: "agent", text: data.message },
-        ]);
+      if (data.success) {
+        const agentMessage: Message = {
+          type: "agent",
+          text: data.response || "How can I help?",
+        };
+
+        if (data.quickReplies && data.quickReplies.length > 0) {
+          agentMessage.quickReplies = data.quickReplies;
+        }
+
+        if (data.buttonText && data.buttonLink) {
+          agentMessage.buttonText = data.buttonText;
+          agentMessage.buttonLink = data.buttonLink;
+        }
+
+        setMessages([...updatedMessages, agentMessage]);
       } else {
         setMessages([
           ...updatedMessages,
           {
             type: "agent",
-            text: "I had trouble processing that. Please call us at (214) 218-2921!",
+            text: data.response || "I had trouble with that. Please call (214) 218-2921!",
+            quickReplies: data.quickReplies || [],
           },
         ]);
       }
@@ -69,7 +82,8 @@ export default function LiveChat() {
         ...updatedMessages,
         {
           type: "agent",
-          text: "Sorry, I'm having trouble connecting. Please call (214) 218-2921 for assistance!",
+          text: "Sorry, something went wrong. Please call (214) 218-2921!",
+          quickReplies: ["Call Us", "Get a Quote"],
         },
       ]);
     } finally {
@@ -98,18 +112,48 @@ export default function LiveChat() {
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-primary-800">
             {messages.map((msg, idx) => (
-              <div
-                key={idx}
-                className={`flex ${msg.type === "customer" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-xs px-4 py-2 rounded-lg ${
-                    msg.type === "customer"
-                      ? "bg-accent-500 text-primary-900 rounded-br-none font-medium"
-                      : "bg-primary-600 text-white rounded-bl-none border border-accent-500"
-                  }`}
-                >
-                  <p className="text-sm whitespace-wrap break-words">{msg.text}</p>
+              <div key={idx} className={`flex ${msg.type === "customer" ? "justify-end" : "justify-start"}`}>
+                <div className="max-w-xs">
+                  {/* Message bubble */}
+                  <div
+                    className={`px-4 py-2 rounded-lg ${
+                      msg.type === "customer"
+                        ? "bg-accent-500 text-primary-900 rounded-br-none font-medium"
+                        : "bg-primary-600 text-white rounded-bl-none border border-accent-500"
+                    }`}
+                  >
+                    <p className="text-sm whitespace-wrap break-words">{msg.text}</p>
+                  </div>
+
+                  {/* Action button if present */}
+                  {msg.buttonText && msg.buttonLink && msg.type === "agent" && (
+                    <div className="mt-2">
+                      <Link
+                        href={msg.buttonLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-full text-center bg-accent-500 hover:bg-accent-400 text-primary-900 font-bold py-2 px-3 rounded text-sm transition"
+                      >
+                        {msg.buttonText}
+                      </Link>
+                    </div>
+                  )}
+
+                  {/* Quick reply buttons */}
+                  {msg.quickReplies && msg.quickReplies.length > 0 && msg.type === "agent" && (
+                    <div className="mt-2 space-y-2">
+                      {msg.quickReplies.map((reply, replyIdx) => (
+                        <button
+                          key={replyIdx}
+                          onClick={() => handleSendMessage(reply)}
+                          disabled={isLoading}
+                          className="w-full text-left bg-primary-600 hover:bg-primary-500 text-white py-2 px-3 rounded text-xs border border-accent-400 transition disabled:opacity-50"
+                        >
+                          {reply}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -139,7 +183,7 @@ export default function LiveChat() {
                 className="flex-1 border-2 border-accent-500 rounded px-3 py-2 text-sm bg-primary-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent-500 disabled:opacity-50"
               />
               <button
-                onClick={handleSendMessage}
+                onClick={() => handleSendMessage()}
                 disabled={isLoading || !inputValue.trim()}
                 className="bg-accent-500 text-primary-900 px-4 py-2 rounded hover:bg-accent-400 transition font-bold disabled:opacity-50 disabled:cursor-not-allowed"
               >
