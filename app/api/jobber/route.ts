@@ -346,7 +346,6 @@ async function createRequest(
         request {
           id
           title
-          status
         }
         userErrors {
           message
